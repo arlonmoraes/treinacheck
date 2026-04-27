@@ -1,5 +1,6 @@
 'use client'
 
+import Protegido from '@/app/components/Protegido'
 import { useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
@@ -35,6 +36,7 @@ export default function NovoEvento() {
   }
 
   return (
+  <Protegido>
     <div style={{ padding: 20 }}>
       <h1>Criar Evento</h1>
 
@@ -68,5 +70,5 @@ export default function NovoEvento() {
 
       <button onClick={criarEvento}>Salvar</button>
     </div>
-  )
-}
+  </Protegido>
+)

@@ -1,5 +1,6 @@
 'use client'
 
+import Protegido from '@/app/components/Protegido'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
@@ -93,6 +94,7 @@ function exportarCSV() {
   const linkPresenca = `https://treinacheck.vercel.app/presenca/${evento.codigo}`
 
   return (
+  <Protegido>
     <div style={{ padding: 20 }}>
       <h1>{evento.titulo}</h1>
 
@@ -130,5 +132,5 @@ function exportarCSV() {
         </div>
       ))}
     </div>
+  </Protegido>
   )
-}

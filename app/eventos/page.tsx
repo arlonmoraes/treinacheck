@@ -1,5 +1,6 @@
 'use client'
 
+import Protegido from '@/app/components/Protegido'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import Link from 'next/link'
@@ -36,6 +37,7 @@ export default function Eventos() {
   }
 
   return (
+  <Protegido>
     <div style={{ padding: 20 }}>
       <h1>Eventos</h1>
 
@@ -58,5 +60,5 @@ export default function Eventos() {
         </div>
       ))}
     </div>
-  )
-}
+  </Protegido>
+)
