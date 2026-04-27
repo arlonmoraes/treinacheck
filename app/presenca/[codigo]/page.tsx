@@ -54,7 +54,20 @@ export default function RegistrarPresenca() {
 
     setSalvando(true)
 
-    const { error } = await supabase.from('presencas').insert([
+    const { data: presencaExistente } = await supabase
+  .from('presencas')
+  .select('id')
+  .eq('evento_id', evento.id)
+  .eq('matricula', matricula)
+  .maybeSingle()
+
+if (presencaExistente) {
+  setSalvando(false)
+  alert('Essa matrícula já registrou presença neste evento.')
+  return
+}
+
+const { error } = await supabase.from('presencas').insert([
       {
         evento_id: evento.id,
         nome,
