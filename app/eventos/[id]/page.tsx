@@ -19,6 +19,7 @@ export default function EventoDetalhe() {
   const id = params.id as string
 
   const [evento, setEvento] = useState<Evento | null>(null)
+  const [presencas, setPresencas] = useState<any[]>([])
 
   useEffect(() => {
     buscarEvento()
@@ -38,6 +39,22 @@ export default function EventoDetalhe() {
     }
 
     setEvento(data)
+    buscarPresencas(data.id)
+  }
+
+  async function buscarPresencas(eventoId: string) {
+    const { data, error } = await supabase
+      .from('presencas')
+      .select('*')
+      .eq('evento_id', eventoId)
+      .order('data_hora', { ascending: false })
+
+    if (error) {
+      console.log(error)
+      return
+    }
+
+    setPresencas(data || [])
   }
 
   if (!evento) {
@@ -59,6 +76,24 @@ export default function EventoDetalhe() {
       <QRCodeSVG value={linkPresenca} size={240} />
 
       <p>{linkPresenca}</p>
+
+      <hr />
+
+      <h2>Lista de Presença</h2>
+
+      {presencas.length === 0 && <p>Nenhuma presença registrada ainda</p>}
+
+      {presencas.map((p) => (
+        <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: 8 }}>
+          <strong>{p.nome}</strong>
+          <br />
+          Matrícula: {p.matricula}
+          <br />
+          Setor: {p.setor}
+          <br />
+          Hora: {new Date(p.data_hora).toLocaleTimeString()}
+        </div>
+      ))}
     </div>
   )
 }
