@@ -44,7 +44,7 @@ export default function EventoDetalhe() {
     return <div style={{ padding: 20 }}>Carregando...</div>
   }
 
-  const linkPresenca = `http://192.168.151.2:3000/presenca/${evento.codigo}`
+  const linkPresenca = `https://treinacheck.vercel.app/presenca/${evento.codigo}`
 
   return (
     <div style={{ padding: 20 }}>
