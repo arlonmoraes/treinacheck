@@ -57,6 +57,35 @@ export default function EventoDetalhe() {
     setPresencas(data || [])
   }
 
+function exportarCSV() {
+  if (!evento) return
+
+  const linhas = [
+    ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
+    ...presencas.map((p) => [
+      p.nome,
+      p.matricula,
+      p.setor,
+      p.empresa,
+      new Date(p.data_hora).toLocaleString(),
+    ]),
+  ]
+
+  const csv = linhas
+    .map((linha) => linha.map((campo) => `"${campo}"`).join(';'))
+    .join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `presenca-${evento.titulo}.csv`
+  link.click()
+
+  URL.revokeObjectURL(url)
+}
+
   if (!evento) {
     return <div style={{ padding: 20 }}>Carregando...</div>
   }
@@ -80,6 +109,12 @@ export default function EventoDetalhe() {
       <hr />
 
       <h2>Lista de Presença</h2>
+
+	<button onClick={exportarCSV}>
+ 	 Exportar CSV
+	</button>
+
+	<br /><br />
 
       {presencas.length === 0 && <p>Nenhuma presença registrada ainda</p>}
 
