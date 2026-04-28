@@ -13,7 +13,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f6f8' }}>
+    <div style={{ minHeight: '100vh', background: '#f4f6f8', color: '#111827' }}>
       <header style={{ background: '#111827', color: 'white', padding: 16 }}>
         <h2>TreinaCheck</h2>
 
@@ -26,7 +26,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
         </nav>
       </header>
 
-      <main style={{ padding: 20 }}>
+      <main style={{ padding: 20, color: '#111827' }}>
         {children}
       </main>
     </div>
