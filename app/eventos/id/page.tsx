@@ -1,5 +1,6 @@
 'use client'
 
+import LayoutAdmin from '@/app/components/LayoutAdmin'
 import Protegido from '@/app/components/Protegido'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
@@ -58,34 +59,34 @@ export default function EventoDetalhe() {
     setPresencas(data || [])
   }
 
-function exportarCSV() {
-  if (!evento) return
+  function exportarCSV() {
+    if (!evento) return
 
-  const linhas = [
-    ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
-    ...presencas.map((p) => [
-      p.nome,
-      p.matricula,
-      p.setor,
-      p.empresa,
-      new Date(p.data_hora).toLocaleString(),
-    ]),
-  ]
+    const linhas = [
+      ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
+      ...presencas.map((p) => [
+        p.nome,
+        p.matricula,
+        p.setor,
+        p.empresa,
+        new Date(p.data_hora).toLocaleString(),
+      ]),
+    ]
 
-  const csv = linhas
-    .map((linha) => linha.map((campo) => `"${campo}"`).join(';'))
-    .join('\n')
+    const csv = linhas
+      .map((linha) => linha.map((campo) => `"${campo}"`).join(';'))
+      .join('\n')
 
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
 
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `presenca-${evento.titulo}.csv`
-  link.click()
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `presenca-${evento.titulo}.csv`
+    link.click()
 
-  URL.revokeObjectURL(url)
-}
+    URL.revokeObjectURL(url)
+  }
 
   if (!evento) {
     return <div style={{ padding: 20 }}>Carregando...</div>
@@ -94,44 +95,44 @@ function exportarCSV() {
   const linkPresenca = `https://treinacheck.vercel.app/presenca/${evento.codigo}`
 
   return (
-  <Protegido>
-    <div style={{ padding: 20 }}>
-      <h1>{evento.titulo}</h1>
+    <Protegido>
+      <LayoutAdmin>
+        <h1>{evento.titulo}</h1>
 
-      <p>Tipo: {evento.tipo}</p>
-      <p>Data: {evento.data}</p>
-      <p>Instrutor: {evento.instrutor}</p>
+        <p>Tipo: {evento.tipo}</p>
+        <p>Data: {evento.data}</p>
+        <p>Instrutor: {evento.instrutor}</p>
 
-      <h2>QR Code de Presença</h2>
+        <div style={{ background: 'white', padding: 20, borderRadius: 8, marginTop: 20 }}>
+          <h2>QR Code de Presença</h2>
 
-      <QRCodeSVG value={linkPresenca} size={240} />
+          <QRCodeSVG value={linkPresenca} size={240} />
 
-      <p>{linkPresenca}</p>
-
-      <hr />
-
-      <h2>Lista de Presença</h2>
-
-	<button onClick={exportarCSV}>
- 	 Exportar CSV
-	</button>
-
-	<br /><br />
-
-      {presencas.length === 0 && <p>Nenhuma presença registrada ainda</p>}
-
-      {presencas.map((p) => (
-        <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: 8 }}>
-          <strong>{p.nome}</strong>
-          <br />
-          Matrícula: {p.matricula}
-          <br />
-          Setor: {p.setor}
-          <br />
-          Hora: {new Date(p.data_hora).toLocaleTimeString()}
+          <p>{linkPresenca}</p>
         </div>
-      ))}
-    </div>
-  </Protegido>
+
+        <div style={{ background: 'white', padding: 20, borderRadius: 8, marginTop: 20 }}>
+          <h2>Lista de Presença</h2>
+
+          <button onClick={exportarCSV}>Exportar CSV</button>
+
+          <br /><br />
+
+          {presencas.length === 0 && <p>Nenhuma presença registrada ainda</p>}
+
+          {presencas.map((p) => (
+            <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: 8 }}>
+              <strong>{p.nome}</strong>
+              <br />
+              Matrícula: {p.matricula}
+              <br />
+              Setor: {p.setor}
+              <br />
+              Hora: {new Date(p.data_hora).toLocaleTimeString()}
+            </div>
+          ))}
+        </div>
+      </LayoutAdmin>
+    </Protegido>
   )
 }

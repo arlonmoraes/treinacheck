@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import Protegido from '@/app/components/Protegido'
+import LayoutAdmin from '@/app/components/LayoutAdmin'
 
 export default function Relatorios() {
   const [dataInicio, setDataInicio] = useState('')
@@ -59,43 +60,55 @@ export default function Relatorios() {
 
   return (
     <Protegido>
-      <div style={{ padding: 20 }}>
+      <LayoutAdmin>
         <h1>Relatórios</h1>
 
-        <input
-          type="date"
-          value={dataInicio}
-          onChange={(e) => setDataInicio(e.target.value)}
-        />
+        <div style={{ background: 'white', padding: 20, borderRadius: 8, marginTop: 20 }}>
+          <label>Data inicial</label>
+          <br />
+          <input
+            type="date"
+            value={dataInicio}
+            onChange={(e) => setDataInicio(e.target.value)}
+            style={{ padding: 8, width: '100%', maxWidth: 300 }}
+          />
 
-        <br /><br />
+          <br /><br />
 
-        <input
-          type="date"
-          value={dataFim}
-          onChange={(e) => setDataFim(e.target.value)}
-        />
+          <label>Data final</label>
+          <br />
+          <input
+            type="date"
+            value={dataFim}
+            onChange={(e) => setDataFim(e.target.value)}
+            style={{ padding: 8, width: '100%', maxWidth: 300 }}
+          />
 
-        <br /><br />
+          <br /><br />
 
-        <button onClick={buscar}>Buscar</button>
+          <button onClick={buscar}>Buscar</button>
 
-        <br /><br />
+          <br /><br />
 
-        <button onClick={exportarCSV}>Exportar CSV</button>
+          <button onClick={exportarCSV}>Exportar CSV</button>
+        </div>
 
-        <hr />
+        <div style={{ background: 'white', padding: 20, borderRadius: 8, marginTop: 20 }}>
+          <h2>Resultados</h2>
 
-        {dados.map((p) => (
-          <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: 8 }}>
-            <strong>{p.nome}</strong>
-            <br />
-            {p.matricula} - {p.setor}
-            <br />
-            {new Date(p.data_hora).toLocaleString()}
-          </div>
-        ))}
-      </div>
+          {dados.length === 0 && <p>Nenhum registro encontrado.</p>}
+
+          {dados.map((p) => (
+            <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: 8 }}>
+              <strong>{p.nome}</strong>
+              <br />
+              {p.matricula} - {p.setor}
+              <br />
+              {new Date(p.data_hora).toLocaleString()}
+            </div>
+          ))}
+        </div>
+      </LayoutAdmin>
     </Protegido>
   )
 }

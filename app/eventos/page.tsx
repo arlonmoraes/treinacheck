@@ -1,5 +1,6 @@
 'use client'
 
+import LayoutAdmin from '@/app/components/LayoutAdmin'
 import Protegido from '@/app/components/Protegido'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
@@ -37,29 +38,38 @@ export default function Eventos() {
   }
 
   return (
-  <Protegido>
-    <div style={{ padding: 20 }}>
-      <h1>Eventos</h1>
+    <Protegido>
+      <LayoutAdmin>
+        <h1>Eventos</h1>
 
-      <Link href="/eventos/novo">
-        <button>Criar novo evento</button>
-      </Link>
+        <Link href="/eventos/novo">
+          <button>Criar novo evento</button>
+        </Link>
 
-      <br /><br />
+        <br /><br />
 
-      {eventos.map((evento) => (
-        <div key={evento.id} style={{ border: '1px solid #ccc', padding: 12, marginBottom: 12 }}>
-          <h2>{evento.titulo}</h2>
-          <p>Tipo: {evento.tipo}</p>
-          <p>Data: {evento.data}</p>
-          <p>Instrutor: {evento.instrutor}</p>
+        {eventos.map((evento) => (
+          <div
+            key={evento.id}
+            style={{
+              border: '1px solid #ccc',
+              padding: 12,
+              marginBottom: 12,
+              borderRadius: 8,
+              background: 'white'
+            }}
+          >
+            <h2>{evento.titulo}</h2>
+            <p>Tipo: {evento.tipo}</p>
+            <p>Data: {evento.data}</p>
+            <p>Instrutor: {evento.instrutor}</p>
 
-          <Link href={`/eventos/${evento.id}`}>
-            <button>Ver QR Code</button>
-          </Link>
-        </div>
-      ))}
-    </div>
-  </Protegido>
-)
+            <Link href={`/eventos/${evento.id}`}>
+              <button>Ver QR Code</button>
+            </Link>
+          </div>
+        ))}
+      </LayoutAdmin>
+    </Protegido>
+  )
 }
