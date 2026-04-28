@@ -2,6 +2,8 @@
 
 import LayoutAdmin from '@/app/components/LayoutAdmin'
 import Protegido from '@/app/components/Protegido'
+import Input from '@/app/components/Input'
+import Button from '@/app/components/Button'
 import { useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { v4 as uuidv4 } from 'uuid'
@@ -42,59 +44,48 @@ export default function NovoEvento() {
         <h1>Criar Evento</h1>
 
         <div style={{ maxWidth: 400 }}>
-          <input
-            placeholder="Título"
+          <Input
+            label="Título"
             value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            style={{ width: '100%', padding: 8 }}
+            onChange={(e: any) => setTitulo(e.target.value)}
           />
 
-          <br /><br />
+          <div style={{ marginBottom: 12 }}>
+            <label>Tipo</label>
+            <select
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value)}
+              style={{
+                width: '100%',
+                padding: 8,
+                borderRadius: 6,
+                border: '1px solid #ccc'
+              }}
+            >
+              <option value="DDS">DDS</option>
+              <option value="DDQ">DDQ</option>
+              <option value="Treinamento">Treinamento</option>
+            </select>
+          </div>
 
-          <select
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value)}
-            style={{ width: '100%', padding: 8 }}
-          >
-            <option value="DDS">DDS</option>
-            <option value="DDQ">DDQ</option>
-            <option value="Treinamento">Treinamento</option>
-          </select>
-
-          <br /><br />
-
-          <input
+          <Input
+            label="Data"
             type="date"
             value={data}
-            onChange={(e) => setData(e.target.value)}
-            style={{ width: '100%', padding: 8 }}
+            onChange={(e: any) => setData(e.target.value)}
           />
 
-          <br /><br />
-
-          <input
-            placeholder="Instrutor"
+          <Input
+            label="Instrutor"
             value={instrutor}
-            onChange={(e) => setInstrutor(e.target.value)}
-            style={{ width: '100%', padding: 8 }}
+            onChange={(e: any) => setInstrutor(e.target.value)}
           />
 
-          <br /><br />
+          <br />
 
-          <button
-            onClick={criarEvento}
-            style={{
-              width: '100%',
-              padding: 10,
-              background: '#111827',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer'
-            }}
-          >
+          <Button onClick={criarEvento}>
             Salvar
-          </button>
+          </Button>
         </div>
       </LayoutAdmin>
     </Protegido>
