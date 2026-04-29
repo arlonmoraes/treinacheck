@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
+import Input from '@/app/components/Input'
+import Button from '@/app/components/Button'
 
 type Evento = {
   id: string
@@ -55,19 +57,19 @@ export default function RegistrarPresenca() {
     setSalvando(true)
 
     const { data: presencaExistente } = await supabase
-  .from('presencas')
-  .select('id')
-  .eq('evento_id', evento.id)
-  .eq('matricula', matricula)
-  .maybeSingle()
+      .from('presencas')
+      .select('id')
+      .eq('evento_id', evento.id)
+      .eq('matricula', matricula)
+      .maybeSingle()
 
-if (presencaExistente) {
-  setSalvando(false)
-  alert('Essa matrícula já registrou presença neste evento.')
-  return
-}
+    if (presencaExistente) {
+      setSalvando(false)
+      alert('Essa matrícula já registrou presença neste evento.')
+      return
+    }
 
-const { error } = await supabase.from('presencas').insert([
+    const { error } = await supabase.from('presencas').insert([
       {
         evento_id: evento.id,
         nome,
@@ -94,51 +96,79 @@ const { error } = await supabase.from('presencas').insert([
   }
 
   if (!evento) {
-    return <div style={{ padding: 20 }}>Carregando evento...</div>
+    return (
+      <div style={{ padding: 20 }}>
+        Carregando evento...
+      </div>
+    )
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Registrar Presença</h1>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#f4f6f8',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+        color: '#111827'
+      }}
+    >
+      <div
+        style={{
+          background: 'white',
+          padding: 24,
+          borderRadius: 10,
+          width: '100%',
+          maxWidth: 420,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        }}
+      >
+        <h1>Registrar Presença</h1>
 
-      <h2>{evento.titulo}</h2>
-      <p>Tipo: {evento.tipo}</p>
-      <p>Data: {evento.data}</p>
-      <p>Instrutor: {evento.instrutor}</p>
+        <div
+          style={{
+            background: '#f9fafb',
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 20
+          }}
+        >
+          <h2>{evento.titulo}</h2>
+          <p>Tipo: {evento.tipo}</p>
+          <p>Data: {evento.data}</p>
+          <p>Instrutor: {evento.instrutor}</p>
+        </div>
 
-      <hr />
+        <Input
+          label="Nome completo"
+          value={nome}
+          onChange={(e: any) => setNome(e.target.value)}
+        />
 
-      <input
-        placeholder="Nome completo"
-        value={nome}
-        onChange={(e) => setNome(e.target.value)}
-      />
-      <br /><br />
+        <Input
+          label="Matrícula"
+          value={matricula}
+          onChange={(e: any) => setMatricula(e.target.value)}
+        />
 
-      <input
-        placeholder="Matrícula"
-        value={matricula}
-        onChange={(e) => setMatricula(e.target.value)}
-      />
-      <br /><br />
+        <Input
+          label="Setor"
+          value={setor}
+          onChange={(e: any) => setSetor(e.target.value)}
+        />
 
-      <input
-        placeholder="Setor"
-        value={setor}
-        onChange={(e) => setSetor(e.target.value)}
-      />
-      <br /><br />
+        <Input
+          label="Empresa"
+          value={empresa}
+          onChange={(e: any) => setEmpresa(e.target.value)}
+        />
 
-      <input
-        placeholder="Empresa"
-        value={empresa}
-        onChange={(e) => setEmpresa(e.target.value)}
-      />
-      <br /><br />
-
-      <button onClick={registrarPresenca} disabled={salvando}>
-        {salvando ? 'Salvando...' : 'Confirmar presença'}
-      </button>
+        <Button onClick={registrarPresenca}>
+          {salvando ? 'Salvando...' : 'Confirmar presença'}
+        </Button>
+      </div>
     </div>
   )
 }
