@@ -13,6 +13,7 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
+  status: string
 }
 
 export default function RegistrarPresenca() {
@@ -48,6 +49,11 @@ export default function RegistrarPresenca() {
 
   async function registrarPresenca() {
     if (!evento) return
+
+    if (evento.status === 'Encerrado') {
+      alert('Este evento já foi encerrado. Não é mais possível registrar presença.')
+      return
+    }
 
     if (!nome || !matricula || !setor || !empresa) {
       alert('Preencha todos os campos')
@@ -139,6 +145,9 @@ export default function RegistrarPresenca() {
           <p>Tipo: {evento.tipo}</p>
           <p>Data: {evento.data}</p>
           <p>Instrutor: {evento.instrutor}</p>
+	  <p>
+  	     Status: <strong>{evento.status || 'Aberto'}</strong>
+	 </p> 
         </div>
 
         <Input
