@@ -36,6 +36,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
             }}
           >
             <Link style={linkStyle} href="/">Início</Link>
+	    <Link style={linkStyle} href="/dashboard">Dashboard</Link>
             <Link style={linkStyle} href="/eventos">Eventos</Link>
             <Link style={linkStyle} href="/eventos/novo">Novo Evento</Link>
             <Link style={linkStyle} href="/relatorios">Relatórios</Link>
