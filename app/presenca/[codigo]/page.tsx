@@ -50,7 +50,7 @@ export default function RegistrarPresenca() {
   async function registrarPresenca() {
     if (!evento) return
 
-    if (evento.status === 'Encerrado') {
+    if (evento.status === 'ENCERRADO') {
       alert('Este evento já foi encerrado. Não é mais possível registrar presença.')
       return
     }
