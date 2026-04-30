@@ -13,9 +13,20 @@ export default function NovoEvento() {
   const [tipo, setTipo] = useState('DDS')
   const [data, setData] = useState('')
   const [instrutor, setInstrutor] = useState('')
+  const [salvando, setSalvando] = useState(false)
 
   const criarEvento = async () => {
+    if (!titulo || !data || !instrutor) {
+      alert('Preencha todos os campos')
+      return
+    }
+
+    setSalvando(true)
+
     const codigo = uuidv4()
+
+    // 🔥 pega usuário logado
+    const { data: userData } = await supabase.auth.getUser()
 
     const { error } = await supabase.from('eventos').insert([
       {
@@ -24,8 +35,11 @@ export default function NovoEvento() {
         data,
         instrutor,
         codigo,
+        criado_por: userData.user?.id, // 🔥 novo campo
       },
     ])
+
+    setSalvando(false)
 
     if (error) {
       alert('Erro ao criar evento')
@@ -84,7 +98,7 @@ export default function NovoEvento() {
           <br />
 
           <Button onClick={criarEvento}>
-            Salvar
+            {salvando ? 'Salvando...' : 'Salvar'}
           </Button>
         </div>
       </LayoutAdmin>
