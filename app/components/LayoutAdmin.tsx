@@ -18,7 +18,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
         style={{
           background: '#0f172a',
           color: 'white',
-          padding: '18px 24px',
+          padding: '18px 16px',
           boxShadow: '0 2px 10px rgba(0,0,0,0.15)'
         }}
       >
@@ -28,7 +28,13 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
             Sistema de presença digital
           </p>
 
-          <nav style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <nav
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: 8
+            }}
+          >
             <Link style={linkStyle} href="/">Início</Link>
             <Link style={linkStyle} href="/eventos">Eventos</Link>
             <Link style={linkStyle} href="/eventos/novo">Novo Evento</Link>
@@ -41,7 +47,7 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
         </div>
       </header>
 
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: 24 }}>
+      <main style={{ maxWidth: 1100, margin: '0 auto', padding: 16 }}>
         {children}
       </main>
     </div>
@@ -52,15 +58,16 @@ const linkStyle = {
   color: 'white',
   textDecoration: 'none',
   background: '#1e293b',
-  padding: '8px 12px',
-  borderRadius: 8
+  padding: '10px 12px',
+  borderRadius: 8,
+  textAlign: 'center' as const
 }
 
 const logoutStyle = {
   background: '#dc2626',
   color: 'white',
   border: 'none',
-  padding: '8px 12px',
+  padding: '10px 12px',
   borderRadius: 8,
   cursor: 'pointer'
 }
