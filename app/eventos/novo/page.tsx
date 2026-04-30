@@ -14,9 +14,11 @@ export default function NovoEvento() {
   const [data, setData] = useState('')
   const [instrutor, setInstrutor] = useState('')
   const [salvando, setSalvando] = useState(false)
+  const [horaInicio, setHoraInicio] = useState('')
+  const [horaFim, setHoraFim] = useState('')
 
   const criarEvento = async () => {
-    if (!titulo || !data || !instrutor) {
+    if (!titulo || !data || !instrutor || !horaInicio || !horaFim) {
       alert('Preencha todos os campos')
       return
     }
@@ -29,15 +31,17 @@ export default function NovoEvento() {
     const { data: userData } = await supabase.auth.getUser()
 
     const { error } = await supabase.from('eventos').insert([
-      {
-        titulo,
-        tipo,
-        data,
-        instrutor,
-        codigo,
-        criado_por: userData.user?.id, // 🔥 novo campo
-      },
-    ])
+  {
+    titulo,
+    tipo,
+    data,
+    instrutor,
+    codigo,
+    criado_por: userData.user?.id,
+    hora_inicio: horaInicio,
+    hora_fim: horaFim,
+  },
+])
 
     setSalvando(false)
 
@@ -87,7 +91,21 @@ export default function NovoEvento() {
             type="date"
             value={data}
             onChange={(e: any) => setData(e.target.value)}
+
           />
+	  <Input
+  	    label="Hora início"
+	    type="time"
+	    value={horaInicio}
+	    onChange={(e: any) => setHoraInicio(e.target.value)}
+	  />
+
+	 <Input
+ 	   label="Hora fim"
+ 	   type="time"
+ 	   value={horaFim}
+  	   onChange={(e: any) => setHoraFim(e.target.value)}
+	  />
 
           <Input
             label="Instrutor"
