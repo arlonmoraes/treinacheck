@@ -13,6 +13,7 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
+  status: string
 }
 
 export default function Eventos() {
@@ -95,9 +96,29 @@ export default function Eventos() {
                 boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'space-between'
+                justifyContent: 'space-between',
+                position: 'relative'
               }}
             >
+              {/* 🔴 BADGE */}
+              {evento.status === 'Encerrado' && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    right: 10,
+                    background: '#dc2626',
+                    color: 'white',
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  ENCERRADO
+                </span>
+              )}
+
               <div>
                 <h2 style={{ marginBottom: 8 }}>{evento.titulo}</h2>
 
@@ -118,15 +139,18 @@ export default function Eventos() {
                 <button
                   style={{
                     marginTop: 12,
-                    background: '#2563eb',
+                    background: evento.status === 'Encerrado' ? '#9ca3af' : '#2563eb',
                     color: 'white',
                     border: 'none',
                     padding: '8px',
                     borderRadius: 6,
-                    cursor: 'pointer'
+                    cursor: evento.status === 'Encerrado' ? 'not-allowed' : 'pointer'
                   }}
+                  disabled={evento.status === 'Encerrado'}
                 >
-                  Ver QR Code
+                  {evento.status === 'Encerrado'
+                    ? 'Evento encerrado'
+                    : 'Ver QR Code'}
                 </button>
               </Link>
             </div>
