@@ -14,6 +14,7 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
+  status: string
 }
 
 export default function EventoDetalhe() {
@@ -88,111 +89,164 @@ export default function EventoDetalhe() {
     URL.revokeObjectURL(url)
   }
 
+  // 🔴 NOVO: função para encerrar evento
+  async function encerrarEvento() {
+    if (!evento) return
+
+    const confirmar = confirm('Deseja encerrar este evento?')
+
+    if (!confirmar) return
+
+    const { error } = await supabase
+      .from('eventos')
+      .update({ status: 'Encerrado' })
+      .eq('id', evento.id)
+
+    if (error) {
+      console.log(error)
+      alert('Erro ao encerrar evento')
+      return
+    }
+
+    alert('Evento encerrado com sucesso!')
+    setEvento({ ...evento, status: 'Encerrado' })
+  }
+
   if (!evento) {
     return <div style={{ padding: 20 }}>Carregando...</div>
   }
 
   const linkPresenca = `https://treinacheck.vercel.app/presenca/${evento.codigo}`
 
- return (
-  <Protegido>
-    <LayoutAdmin>
-      <h1 style={{ marginBottom: 6 }}>{evento.titulo}</h1>
+  return (
+    <Protegido>
+      <LayoutAdmin>
+        <h1 style={{ marginBottom: 6 }}>{evento.titulo}</h1>
 
-      <p style={{ color: '#64748b', marginBottom: 20 }}>
-        {evento.tipo} • {evento.data} • Instrutor: {evento.instrutor}
-      </p>
+        <p style={{ color: '#64748b' }}>
+          {evento.tipo} • {evento.data} • Instrutor: {evento.instrutor}
+        </p>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 20
-        }}
-      >
-        <div
-          style={{
-            background: 'white',
-            padding: 24,
-            borderRadius: 12,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-            textAlign: 'center'
-          }}
-        >
-          <h2>QR Code de Presença</h2>
-
-          <div
+        {/* 🔴 STATUS + BOTÃO */}
+        <p style={{ marginTop: 10 }}>
+          Status:{' '}
+          <strong
             style={{
-              background: '#f8fafc',
-              padding: 20,
-              borderRadius: 12,
-              display: 'inline-block',
-              margin: '16px 0'
+              color: evento.status === 'Encerrado' ? '#dc2626' : '#16a34a'
             }}
           >
-            <QRCodeSVG value={linkPresenca} size={260} />
-          </div>
+            {evento.status || 'Aberto'}
+          </strong>
+        </p>
 
-          <p style={{ fontSize: 13, color: '#64748b', wordBreak: 'break-all' }}>
-            {linkPresenca}
-          </p>
-        </div>
-
-        <div
-          style={{
-            background: 'white',
-            padding: 24,
-            borderRadius: 12,
-            boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
-          }}
-        >
-          <h2>Lista de Presença</h2>
-
-          <p style={{ color: '#64748b' }}>
-            Total de presentes: <strong>{presencas.length}</strong>
-          </p>
-
+        {evento.status !== 'Encerrado' && (
           <button
-            onClick={exportarCSV}
+            onClick={encerrarEvento}
             style={{
-              background: '#0f172a',
+              background: '#dc2626',
               color: 'white',
               border: 'none',
               padding: '10px 14px',
               borderRadius: 8,
               cursor: 'pointer',
-              marginBottom: 16
+              marginTop: 10,
+              marginBottom: 20
             }}
           >
-            Exportar CSV
+            Encerrar evento
           </button>
+        )}
 
-          {presencas.length === 0 && (
-            <p style={{ color: '#64748b' }}>Nenhuma presença registrada ainda.</p>
-          )}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: 20
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              padding: 24,
+              borderRadius: 12,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+              textAlign: 'center'
+            }}
+          >
+            <h2>QR Code de Presença</h2>
 
-          {presencas.map((p) => (
             <div
-              key={p.id}
               style={{
-                borderBottom: '1px solid #e5e7eb',
-                padding: '10px 0'
+                background: '#f8fafc',
+                padding: 20,
+                borderRadius: 12,
+                display: 'inline-block',
+                margin: '16px 0'
               }}
             >
-              <strong>{p.nome}</strong>
-              <br />
-              <span style={{ color: '#64748b' }}>
-                Matrícula: {p.matricula} • Setor: {p.setor}
-              </span>
-              <br />
-              <span style={{ fontSize: 13, color: '#64748b' }}>
-                Hora: {new Date(p.data_hora).toLocaleTimeString()}
-              </span>
+              <QRCodeSVG value={linkPresenca} size={260} />
             </div>
-          ))}
+
+            <p style={{ fontSize: 13, color: '#64748b', wordBreak: 'break-all' }}>
+              {linkPresenca}
+            </p>
+          </div>
+
+          <div
+            style={{
+              background: 'white',
+              padding: 24,
+              borderRadius: 12,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+            }}
+          >
+            <h2>Lista de Presença</h2>
+
+            <p style={{ color: '#64748b' }}>
+              Total de presentes: <strong>{presencas.length}</strong>
+            </p>
+
+            <button
+              onClick={exportarCSV}
+              style={{
+                background: '#0f172a',
+                color: 'white',
+                border: 'none',
+                padding: '10px 14px',
+                borderRadius: 8,
+                cursor: 'pointer',
+                marginBottom: 16
+              }}
+            >
+              Exportar CSV
+            </button>
+
+            {presencas.length === 0 && (
+              <p style={{ color: '#64748b' }}>Nenhuma presença registrada ainda.</p>
+            )}
+
+            {presencas.map((p) => (
+              <div
+                key={p.id}
+                style={{
+                  borderBottom: '1px solid #e5e7eb',
+                  padding: '10px 0'
+                }}
+              >
+                <strong>{p.nome}</strong>
+                <br />
+                <span style={{ color: '#64748b' }}>
+                  Matrícula: {p.matricula} • Setor: {p.setor}
+                </span>
+                <br />
+                <span style={{ fontSize: 13, color: '#64748b' }}>
+                  Hora: {new Date(p.data_hora).toLocaleTimeString()}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </LayoutAdmin>
-  </Protegido>
-)
+      </LayoutAdmin>
+    </Protegido>
+  )
 }
