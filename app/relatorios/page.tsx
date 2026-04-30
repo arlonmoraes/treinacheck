@@ -1,30 +1,56 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import Protegido from '@/app/components/Protegido'
 import LayoutAdmin from '@/app/components/LayoutAdmin'
 
+type Evento = {
+  id: string
+  titulo: string
+  tipo: string
+  data: string
+}
+
 export default function Relatorios() {
-  const [dataInicio, setDataInicio] = useState('')
-  const [dataFim, setDataFim] = useState('')
+  const [eventos, setEventos] = useState<Evento[]>([])
+  const [eventoId, setEventoId] = useState('')
   const [dados, setDados] = useState<any[]>([])
 
+  useEffect(() => {
+    buscarEventos()
+  }, [])
+
+  async function buscarEventos() {
+    const { data, error } = await supabase
+      .from('eventos')
+      .select('id, titulo, tipo, data')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.log(error)
+      alert('Erro ao buscar eventos')
+      return
+    }
+
+    setEventos(data || [])
+  }
+
   async function buscar() {
-    if (!dataInicio || !dataFim) {
-      alert('Informe o período')
+    if (!eventoId) {
+      alert('Selecione um evento')
       return
     }
 
     const { data, error } = await supabase
       .from('presencas')
       .select('*')
-      .gte('data_hora', dataInicio)
-      .lte('data_hora', dataFim + ' 23:59:59')
+      .eq('evento_id', eventoId)
+      .order('data_hora', { ascending: false })
 
     if (error) {
       console.log(error)
-      alert('Erro ao buscar dados')
+      alert('Erro ao buscar presenças')
       return
     }
 
@@ -52,7 +78,7 @@ export default function Relatorios() {
 
     const link = document.createElement('a')
     link.href = url
-    link.download = `relatorio.csv`
+    link.download = `relatorio-evento.csv`
     link.click()
 
     URL.revokeObjectURL(url)
@@ -61,50 +87,60 @@ export default function Relatorios() {
   return (
     <Protegido>
       <LayoutAdmin>
-        <h1>Relatórios</h1>
+        <h1>Relatório por Evento</h1>
 
-        <div style={{ background: 'white', padding: 20, borderRadius: 8, marginTop: 20 }}>
-          <label>Data inicial</label>
+        <div style={{ background: 'white', padding: 20, borderRadius: 10, marginTop: 20 }}>
+          <label>Selecione o evento</label>
           <br />
-          <input
-            type="date"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-            style={{ padding: 8, width: '100%', maxWidth: 300 }}
-          />
+
+          <select
+            value={eventoId}
+            onChange={(e) => setEventoId(e.target.value)}
+            style={{
+              width: '100%',
+              maxWidth: 500,
+              padding: 10,
+              borderRadius: 8,
+              border: '1px solid #ccc',
+              marginTop: 6
+            }}
+          >
+            <option value="">Escolha...</option>
+
+            {eventos.map((evento) => (
+              <option key={evento.id} value={evento.id}>
+                {evento.data} - {evento.tipo} - {evento.titulo}
+              </option>
+            ))}
+          </select>
 
           <br /><br />
 
-          <label>Data final</label>
-          <br />
-          <input
-            type="date"
-            value={dataFim}
-            onChange={(e) => setDataFim(e.target.value)}
-            style={{ padding: 8, width: '100%', maxWidth: 300 }}
-          />
-
-          <br /><br />
-
-          <button onClick={buscar}>Buscar</button>
+          <button onClick={buscar}>Buscar presenças</button>
 
           <br /><br />
 
           <button onClick={exportarCSV}>Exportar CSV</button>
         </div>
 
-        <div style={{ background: 'white', padding: 20, borderRadius: 8, marginTop: 20 }}>
+        <div style={{ background: 'white', padding: 20, borderRadius: 10, marginTop: 20 }}>
           <h2>Resultados</h2>
+
+          <p>Total de presentes: <strong>{dados.length}</strong></p>
 
           {dados.length === 0 && <p>Nenhum registro encontrado.</p>}
 
           {dados.map((p) => (
-            <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: 8 }}>
+            <div key={p.id} style={{ borderBottom: '1px solid #e5e7eb', padding: '10px 0' }}>
               <strong>{p.nome}</strong>
               <br />
-              {p.matricula} - {p.setor}
+              Matrícula: {p.matricula} • Setor: {p.setor}
               <br />
-              {new Date(p.data_hora).toLocaleString()}
+              Empresa: {p.empresa}
+              <br />
+              <span style={{ color: '#64748b' }}>
+                {new Date(p.data_hora).toLocaleString()}
+              </span>
             </div>
           ))}
         </div>
