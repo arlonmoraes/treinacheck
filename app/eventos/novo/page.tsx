@@ -13,9 +13,29 @@ export default function NovoEvento() {
   const [tipo, setTipo] = useState('DDS')
   const [data, setData] = useState('')
   const [instrutor, setInstrutor] = useState('')
-  const [salvando, setSalvando] = useState(false)
   const [horaInicio, setHoraInicio] = useState('')
   const [horaFim, setHoraFim] = useState('')
+  const [latitude, setLatitude] = useState('')
+  const [longitude, setLongitude] = useState('')
+  const [salvando, setSalvando] = useState(false)
+
+  const pegarLocalizacao = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocalização não suportada')
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLatitude(pos.coords.latitude.toString())
+        setLongitude(pos.coords.longitude.toString())
+        alert('Localização capturada com sucesso!')
+      },
+      () => {
+        alert('Erro ao capturar localização')
+      }
+    )
+  }
 
   const criarEvento = async () => {
     if (!titulo || !data || !instrutor || !horaInicio || !horaFim) {
@@ -27,33 +47,41 @@ export default function NovoEvento() {
 
     const codigo = uuidv4()
 
-    // 🔥 pega usuário logado
     const { data: userData } = await supabase.auth.getUser()
 
     const { error } = await supabase.from('eventos').insert([
-  {
-    titulo,
-    tipo,
-    data,
-    instrutor,
-    codigo,
-    criado_por: userData.user?.id,
-    hora_inicio: horaInicio,
-    hora_fim: horaFim,
-  },
-])
+      {
+        titulo,
+        tipo,
+        data,
+        instrutor,
+        codigo,
+        criado_por: userData.user?.id,
+        hora_inicio: horaInicio,
+        hora_fim: horaFim,
+        latitude: latitude ? Number(latitude) : null,
+        longitude: longitude ? Number(longitude) : null,
+      },
+    ])
 
     setSalvando(false)
 
     if (error) {
-      alert('Erro ao criar evento')
       console.log(error)
-    } else {
-      alert('Evento criado com sucesso!')
-      setTitulo('')
-      setData('')
-      setInstrutor('')
+      alert('Erro ao criar evento')
+      return
     }
+
+    alert('Evento criado com sucesso!')
+
+    // reset
+    setTitulo('')
+    setData('')
+    setInstrutor('')
+    setHoraInicio('')
+    setHoraFim('')
+    setLatitude('')
+    setLongitude('')
   }
 
   return (
@@ -91,27 +119,52 @@ export default function NovoEvento() {
             type="date"
             value={data}
             onChange={(e: any) => setData(e.target.value)}
-
           />
-	  <Input
-  	    label="Hora início"
-	    type="time"
-	    value={horaInicio}
-	    onChange={(e: any) => setHoraInicio(e.target.value)}
-	  />
 
-	 <Input
- 	   label="Hora fim"
- 	   type="time"
- 	   value={horaFim}
-  	   onChange={(e: any) => setHoraFim(e.target.value)}
-	  />
+          <Input
+            label="Hora início"
+            type="time"
+            value={horaInicio}
+            onChange={(e: any) => setHoraInicio(e.target.value)}
+          />
+
+          <Input
+            label="Hora fim"
+            type="time"
+            value={horaFim}
+            onChange={(e: any) => setHoraFim(e.target.value)}
+          />
 
           <Input
             label="Instrutor"
             value={instrutor}
             onChange={(e: any) => setInstrutor(e.target.value)}
           />
+
+          {/* 🔥 BOTÃO GPS */}
+          <button
+            style={{
+              width: '100%',
+              padding: 10,
+              background: '#16a34a',
+              color: 'white',
+              border: 'none',
+              borderRadius: 6,
+              marginTop: 10,
+              cursor: 'pointer'
+            }}
+            onClick={pegarLocalizacao}
+          >
+            📍 Usar minha localização
+          </button>
+
+          {/* 🔍 MOSTRA COORDENADAS */}
+          {latitude && longitude && (
+            <p style={{ fontSize: 12, color: '#555', marginTop: 8 }}>
+              Lat: {latitude} <br />
+              Lng: {longitude}
+            </p>
+          )}
 
           <br />
 
