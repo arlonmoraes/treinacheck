@@ -109,7 +109,7 @@ export default function RegistrarPresenca() {
             lonUser
           )
 
-          if (distancia > 0.1) {
+          if (distancia > 0.01) {
             setSalvando(false)
             alert('Você não está no local do evento')
             return
