@@ -6,6 +6,23 @@ import { useParams } from 'next/navigation'
 import Input from '@/app/components/Input'
 import Button from '@/app/components/Button'
 
+// 🔥 FUNÇÃO DISTÂNCIA
+function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371 // km
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+
+  return R * c
+}
+
 type Evento = {
   id: string
   titulo: string
@@ -14,6 +31,10 @@ type Evento = {
   instrutor: string
   codigo: string
   status: string
+  hora_inicio: string
+  hora_fim: string
+  latitude: number | null
+  longitude: number | null
 }
 
 export default function RegistrarPresenca() {
@@ -50,63 +71,100 @@ export default function RegistrarPresenca() {
   async function registrarPresenca() {
     if (!evento) return
 
-    if (evento.status === 'ENCERRADO') {
-      alert('Este evento já foi encerrado. Não é mais possível registrar presença.')
+    // 🔥 STATUS
+    if (evento.status?.toUpperCase() === 'ENCERRADO') {
+      alert('Evento encerrado')
       return
     }
 
+    // 🔥 CAMPOS
     if (!nome || !matricula || !setor || !empresa) {
       alert('Preencha todos os campos')
       return
     }
 
+    // 🔥 HORÁRIO
+    const agora = new Date()
+    const inicio = new Date(`${evento.data}T${evento.hora_inicio}`)
+    const fim = new Date(`${evento.data}T${evento.hora_fim}`)
+
+    if (agora < inicio || agora > fim) {
+      alert('Fora do horário permitido')
+      return
+    }
+
     setSalvando(true)
 
-    const { data: presencaExistente } = await supabase
-      .from('presencas')
-      .select('id')
-      .eq('evento_id', evento.id)
-      .eq('matricula', matricula)
-      .maybeSingle()
+    // 🔥 GPS
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const latUser = pos.coords.latitude
+        const lonUser = pos.coords.longitude
 
-    if (presencaExistente) {
-      setSalvando(false)
-      alert('Essa matrícula já registrou presença neste evento.')
-      return
-    }
+        if (evento.latitude && evento.longitude) {
+          const distancia = calcularDistancia(
+            Number(evento.latitude),
+            Number(evento.longitude),
+            latUser,
+            lonUser
+          )
 
-    const { error } = await supabase.from('presencas').insert([
-      {
-        evento_id: evento.id,
-        nome,
-        matricula,
-        setor,
-        empresa,
+          if (distancia > 0.1) {
+            setSalvando(false)
+            alert('Você não está no local do evento')
+            return
+          }
+        }
+
+        // 🔁 DUPLICIDADE
+        const { data: presencaExistente } = await supabase
+          .from('presencas')
+          .select('id')
+          .eq('evento_id', evento.id)
+          .eq('matricula', matricula)
+          .maybeSingle()
+
+        if (presencaExistente) {
+          setSalvando(false)
+          alert('Essa matrícula já registrou presença')
+          return
+        }
+
+        // ✅ SALVAR
+        const { error } = await supabase.from('presencas').insert([
+          {
+            evento_id: evento.id,
+            nome,
+            matricula,
+            setor,
+            empresa,
+          },
+        ])
+
+        setSalvando(false)
+
+        if (error) {
+          console.log(error)
+          alert('Erro ao registrar presença')
+          return
+        }
+
+        alert('Presença confirmada!')
+
+        setNome('')
+        setMatricula('')
+        setSetor('')
+        setEmpresa('')
       },
-    ])
-
-    setSalvando(false)
-
-    if (error) {
-      console.log(error)
-      alert('Erro ao registrar presença')
-      return
-    }
-
-    alert('Presença registrada com sucesso!')
-
-    setNome('')
-    setMatricula('')
-    setSetor('')
-    setEmpresa('')
+      () => {
+        setSalvando(false)
+        alert('Ative a localização para registrar presença')
+      }
+    )
   }
 
   if (!evento) {
-    return (
-      <div style={{ padding: 20 }}>
-        Carregando evento...
-      </div>
-    )
+    return <div style={{ padding: 20 }}>Carregando evento...</div>
   }
 
   return (
@@ -145,34 +203,13 @@ export default function RegistrarPresenca() {
           <p>Tipo: {evento.tipo}</p>
           <p>Data: {evento.data}</p>
           <p>Instrutor: {evento.instrutor}</p>
-	  <p>
-  	     Status: <strong>{evento.status || 'Aberto'}</strong>
-	 </p> 
+          <p>Status: <strong>{evento.status || 'Aberto'}</strong></p>
         </div>
 
-        <Input
-          label="Nome completo"
-          value={nome}
-          onChange={(e: any) => setNome(e.target.value)}
-        />
-
-        <Input
-          label="Matrícula"
-          value={matricula}
-          onChange={(e: any) => setMatricula(e.target.value)}
-        />
-
-        <Input
-          label="Setor"
-          value={setor}
-          onChange={(e: any) => setSetor(e.target.value)}
-        />
-
-        <Input
-          label="Empresa"
-          value={empresa}
-          onChange={(e: any) => setEmpresa(e.target.value)}
-        />
+        <Input label="Nome completo" value={nome} onChange={(e: any) => setNome(e.target.value)} />
+        <Input label="Matrícula" value={matricula} onChange={(e: any) => setMatricula(e.target.value)} />
+        <Input label="Setor" value={setor} onChange={(e: any) => setSetor(e.target.value)} />
+        <Input label="Empresa" value={empresa} onChange={(e: any) => setEmpresa(e.target.value)} />
 
         <Button onClick={registrarPresenca}>
           {salvando ? 'Salvando...' : 'Confirmar presença'}
