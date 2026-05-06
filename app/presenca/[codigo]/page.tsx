@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import Input from '@/app/components/Input'
 import Button from '@/app/components/Button'
 
+// 🔥 FUNÇÃO DISTÂNCIA
 function calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371
   const dLat = (lat2 - lat1) * Math.PI / 180
@@ -51,11 +52,17 @@ export default function RegistrarPresenca() {
   }, [])
 
   async function buscarEvento() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('eventos')
       .select('*')
       .eq('codigo', codigo)
       .single()
+
+    if (error) {
+      console.log(error)
+      alert('Evento não encontrado')
+      return
+    }
 
     setEvento(data)
   }
@@ -63,134 +70,187 @@ export default function RegistrarPresenca() {
   async function registrarPresenca() {
     if (!evento) return
 
+    // 🔥 STATUS
     if (evento.status?.toUpperCase() === 'ENCERRADO') {
       alert('Evento encerrado')
       return
     }
 
+    // 🔥 CAMPOS
     if (!nome || !matricula || !setor || !empresa || !foto) {
       alert('Preencha tudo e tire a selfie')
       return
     }
 
-    // horário
+    // 🔥 HORÁRIO
     const agora = new Date()
     const inicio = new Date(`${evento.data}T${evento.hora_inicio}`)
     const fim = new Date(`${evento.data}T${evento.hora_fim}`)
 
     if (agora < inicio || agora > fim) {
-      alert('Fora do horário')
+      alert('Fora do horário permitido')
       return
     }
 
     setSalvando(true)
 
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const latUser = pos.coords.latitude
-      const lonUser = pos.coords.longitude
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const latUser = pos.coords.latitude
+        const lonUser = pos.coords.longitude
 
-      if (evento.latitude && evento.longitude) {
-        const distancia = calcularDistancia(
-          evento.latitude,
-          evento.longitude,
-          latUser,
-          lonUser
-        )
+        // 🔥 GPS
+        if (evento.latitude && evento.longitude) {
+          const distancia = calcularDistancia(
+            Number(evento.latitude),
+            Number(evento.longitude),
+            latUser,
+            lonUser
+          )
 
-        if (distancia > 0.05) {
+          if (distancia > 0.05) {
+            setSalvando(false)
+            alert('Você não está no local do evento')
+            return
+          }
+        }
+
+        // 🔁 DUPLICIDADE
+        const { data: existe } = await supabase
+          .from('presencas')
+          .select('id')
+          .eq('evento_id', evento.id)
+          .eq('matricula', matricula)
+          .maybeSingle()
+
+        if (existe) {
           setSalvando(false)
-          alert('Você não está no local')
+          alert('Essa matrícula já registrou presença')
           return
         }
-      }
 
-      // upload da foto
-      const fileName = `${Date.now()}-${matricula}.jpg`
+        // 🔥 UPLOAD FOTO (CORRIGIDO)
+        const fileExt = foto.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
 
-      const { error: uploadError } = await supabase.storage
-        .from('selfies')
-        .upload(fileName, foto)
+        const { error: uploadError } = await supabase.storage
+          .from('selfies')
+          .upload(fileName, foto, {
+            cacheControl: '3600',
+            upsert: false
+          })
 
-      if (uploadError) {
+        if (uploadError) {
+          console.log(uploadError)
+          setSalvando(false)
+          alert('Erro ao enviar foto: ' + uploadError.message)
+          return
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('selfies')
+          .getPublicUrl(fileName)
+
+        const foto_url = urlData.publicUrl
+
+        // ✅ SALVAR
+        const { error } = await supabase.from('presencas').insert([
+          {
+            evento_id: evento.id,
+            nome,
+            matricula,
+            setor,
+            empresa,
+            foto_url,
+          },
+        ])
+
         setSalvando(false)
-        alert('Erro ao enviar foto')
-        return
-      }
 
-      const { data: urlData } = supabase.storage
-        .from('selfies')
-        .getPublicUrl(fileName)
+        if (error) {
+          console.log(error)
+          alert('Erro ao salvar presença')
+          return
+        }
 
-      const foto_url = urlData.publicUrl
+        alert('Presença registrada com sucesso!')
 
-      // duplicidade
-      const { data: existe } = await supabase
-        .from('presencas')
-        .select('id')
-        .eq('evento_id', evento.id)
-        .eq('matricula', matricula)
-        .maybeSingle()
-
-      if (existe) {
+        setNome('')
+        setMatricula('')
+        setSetor('')
+        setEmpresa('')
+        setFoto(null)
+      },
+      () => {
         setSalvando(false)
-        alert('Já registrado')
-        return
+        alert('Ative a localização para registrar presença')
       }
-
-      // salvar
-      const { error } = await supabase.from('presencas').insert([
-        {
-          evento_id: evento.id,
-          nome,
-          matricula,
-          setor,
-          empresa,
-          foto_url,
-        },
-      ])
-
-      setSalvando(false)
-
-      if (error) {
-        alert('Erro ao salvar')
-        return
-      }
-
-      alert('Presença registrada com selfie!')
-
-      setNome('')
-      setMatricula('')
-      setSetor('')
-      setEmpresa('')
-      setFoto(null)
-    })
+    )
   }
 
-  if (!evento) return <div>Carregando...</div>
+  if (!evento) {
+    return <div style={{ padding: 20 }}>Carregando evento...</div>
+  }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>{evento.titulo}</h1>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#f4f6f8',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+        color: '#111827'
+      }}
+    >
+      <div
+        style={{
+          background: 'white',
+          padding: 24,
+          borderRadius: 10,
+          width: '100%',
+          maxWidth: 420,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        }}
+      >
+        <h1>Registrar Presença</h1>
 
-      <Input label="Nome" value={nome} onChange={(e:any)=>setNome(e.target.value)} />
-      <Input label="Matrícula" value={matricula} onChange={(e:any)=>setMatricula(e.target.value)} />
-      <Input label="Setor" value={setor} onChange={(e:any)=>setSetor(e.target.value)} />
-      <Input label="Empresa" value={empresa} onChange={(e:any)=>setEmpresa(e.target.value)} />
+        <div
+          style={{
+            background: '#f9fafb',
+            padding: 12,
+            borderRadius: 8,
+            marginBottom: 20
+          }}
+        >
+          <h2>{evento.titulo}</h2>
+          <p>Tipo: {evento.tipo}</p>
+          <p>Data: {evento.data}</p>
+          <p>Instrutor: {evento.instrutor}</p>
+          <p>Status: <strong>{evento.status || 'Aberto'}</strong></p>
+        </div>
 
-      <br />
+        <Input label="Nome completo" value={nome} onChange={(e:any)=>setNome(e.target.value)} />
+        <Input label="Matrícula" value={matricula} onChange={(e:any)=>setMatricula(e.target.value)} />
+        <Input label="Setor" value={setor} onChange={(e:any)=>setSetor(e.target.value)} />
+        <Input label="Empresa" value={empresa} onChange={(e:any)=>setEmpresa(e.target.value)} />
 
-      <input
-        type="file"
-        accept="image/*"
-        capture="user"
-        onChange={(e:any)=>setFoto(e.target.files[0])}
-      />
+        <br />
 
-      <br /><br />
+        <input
+          type="file"
+          accept="image/*"
+          capture="user"
+          onChange={(e:any)=>setFoto(e.target.files[0])}
+        />
 
-      <Button onClick={registrarPresenca}>
-        {salvando ? 'Salvando...' : 'Confirmar presença'}
-      </Button>
+        <br /><br />
+
+        <Button onClick={registrarPresenca}>
+          {salvando ? 'Salvando...' : 'Confirmar presença'}
+        </Button>
+      </div>
     </div>
   )
 }
