@@ -13,7 +13,7 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
-  status: string
+  status?: string
 }
 
 export default function Eventos() {
@@ -39,26 +39,69 @@ export default function Eventos() {
     setEventos(data || [])
   }
 
+  async function excluirEvento(id: string) {
+    const confirmar = confirm(
+      'Deseja realmente excluir este evento?'
+    )
+
+    if (!confirmar) return
+
+    // 🔥 remove presenças primeiro
+    const { error: erroPresencas } =
+      await supabase
+        .from('presencas')
+        .delete()
+        .eq('evento_id', id)
+
+    if (erroPresencas) {
+      console.log(erroPresencas)
+      alert('Erro ao excluir presenças')
+      return
+    }
+
+    // 🔥 remove evento
+    const { error } = await supabase
+      .from('eventos')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.log(error)
+      alert('Erro ao excluir evento')
+      return
+    }
+
+    alert('Evento excluído com sucesso!')
+
+    buscarEventos()
+  }
+
   const eventosFiltrados = eventos.filter((e) =>
-    e.titulo.toLowerCase().includes(busca.toLowerCase())
+    e.titulo
+      .toLowerCase()
+      .includes(busca.toLowerCase())
   )
 
   return (
     <Protegido>
       <LayoutAdmin>
-        <h1 style={{ marginBottom: 20 }}>Eventos</h1>
+        <h1 style={{ marginBottom: 20 }}>
+          Eventos
+        </h1>
 
         <input
           placeholder="Buscar evento..."
           value={busca}
-          onChange={(e) => setBusca(e.target.value)}
+          onChange={(e) =>
+            setBusca(e.target.value)
+          }
           style={{
             width: '100%',
             maxWidth: 400,
             padding: 10,
             borderRadius: 8,
             border: '1px solid #ccc',
-            marginBottom: 20
+            marginBottom: 20,
           }}
         />
 
@@ -71,7 +114,7 @@ export default function Eventos() {
                 padding: '10px 16px',
                 border: 'none',
                 borderRadius: 8,
-                cursor: 'pointer'
+                cursor: 'pointer',
               }}
             >
               + Criar novo evento
@@ -82,8 +125,9 @@ export default function Eventos() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: 16
+            gridTemplateColumns:
+              'repeat(auto-fill, minmax(280px, 1fr))',
+            gap: 16,
           }}
         >
           {eventosFiltrados.map((evento) => (
@@ -93,67 +137,104 @@ export default function Eventos() {
                 background: 'white',
                 padding: 16,
                 borderRadius: 10,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                boxShadow:
+                  '0 4px 12px rgba(0,0,0,0.06)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                position: 'relative'
               }}
             >
-              {/* 🔴 BADGE */}
-              {evento.status === 'Encerrado' && (
-                <span
+              <div>
+                <h2
+                  style={{ marginBottom: 8 }}
+                >
+                  {evento.titulo}
+                </h2>
+
+                <p
                   style={{
-                    position: 'absolute',
-                    top: 10,
-                    right: 10,
-                    background: '#dc2626',
-                    color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 'bold'
+                    margin: 0,
+                    color: '#555',
                   }}
                 >
-                  ENCERRADO
-                </span>
-              )}
-
-              <div>
-                <h2 style={{ marginBottom: 8 }}>{evento.titulo}</h2>
-
-                <p style={{ margin: 0, color: '#555' }}>
                   Tipo: {evento.tipo}
                 </p>
 
-                <p style={{ margin: 0, color: '#555' }}>
+                <p
+                  style={{
+                    margin: 0,
+                    color: '#555',
+                  }}
+                >
                   Data: {evento.data}
                 </p>
 
-                <p style={{ margin: 0, color: '#555' }}>
-                  Instrutor: {evento.instrutor}
+                <p
+                  style={{
+                    margin: 0,
+                    color: '#555',
+                  }}
+                >
+                  Instrutor:{' '}
+                  {evento.instrutor}
                 </p>
 
+                <p
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
+                  Status:{' '}
+                  <strong>
+                    {evento.status ||
+                      'Aberto'}
+                  </strong>
+                </p>
               </div>
 
-              <Link href={`/eventos/${evento.id}`}>
+              {/* BOTÕES */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  marginTop: 12,
+                }}
+              >
+                <Link
+                  href={`/eventos/${evento.id}`}
+                  style={{ flex: 1 }}
+                >
+                  <button
+                    style={{
+                      width: '100%',
+                      background: '#2563eb',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Ver QR Code
+                  </button>
+                </Link>
+
                 <button
+                  onClick={() =>
+                    excluirEvento(evento.id)
+                  }
                   style={{
-                    marginTop: 12,
-                    background: evento.status === 'Encerrado' ? '#9ca3af' : '#2563eb',
+                    background: '#dc2626',
                     color: 'white',
                     border: 'none',
-                    padding: '8px',
+                    padding: '8px 12px',
                     borderRadius: 6,
-                    cursor: evento.status === 'Encerrado' ? 'not-allowed' : 'pointer'
+                    cursor: 'pointer',
                   }}
-                  disabled={evento.status === 'Encerrado'}
                 >
-                  {evento.status === 'Encerrado'
-                    ? 'Evento encerrado'
-                    : 'Ver QR Code'}
+                  Excluir
                 </button>
-              </Link>
+              </div>
             </div>
           ))}
         </div>
