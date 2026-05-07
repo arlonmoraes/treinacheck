@@ -14,7 +14,6 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
-  status: string
 }
 
 export default function EventoDetalhe() {
@@ -60,34 +59,18 @@ export default function EventoDetalhe() {
     setPresencas(data || [])
   }
 
-  // 🔥 FUNÇÃO QUE VOCÊ NÃO ACHOU (AQUI 👇)
-  async function alterarStatus(novoStatus: string) {
-    if (!evento) return
-
-    const { error } = await supabase
-      .from('eventos')
-      .update({ status: novoStatus })
-      .eq('id', evento.id)
-
-    if (error) {
-      alert('Erro ao atualizar status')
-      return
-    }
-
-    setEvento({ ...evento, status: novoStatus })
-  }
-
   function exportarCSV() {
     if (!evento) return
 
     const linhas = [
-      ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
+      ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora', 'Foto'],
       ...presencas.map((p) => [
         p.nome,
         p.matricula,
         p.setor,
         p.empresa,
         new Date(p.data_hora).toLocaleString(),
+        p.foto_url || '',
       ]),
     ]
 
@@ -100,7 +83,7 @@ export default function EventoDetalhe() {
 
     const link = document.createElement('a')
     link.href = url
-    link.download = `presenca-${evento.titulo}.csv`
+    link.download = `presencas-${evento.titulo}.csv`
     link.click()
 
     URL.revokeObjectURL(url)
@@ -115,59 +98,85 @@ export default function EventoDetalhe() {
   return (
     <Protegido>
       <LayoutAdmin>
-        <h1>{evento.titulo}</h1>
+        <div style={{ padding: 20 }}>
+          <h1>{evento.titulo}</h1>
 
-        <p>Tipo: {evento.tipo}</p>
-        <p>Data: {evento.data}</p>
-        <p>Instrutor: {evento.instrutor}</p>
+          <p>Tipo: {evento.tipo}</p>
+          <p>Data: {evento.data}</p>
+          <p>Instrutor: {evento.instrutor}</p>
 
-        {/* 🔥 STATUS */}
-        <p>
-          Status: <strong>{evento.status}</strong>
-        </p>
+          <h2>QR Code de Presença</h2>
 
-        {/* 🔥 BOTÃO */}
-        {evento.status === 'ABERTO' ? (
-          <button onClick={() => alterarStatus('ENCERRADO')}>
-            Encerrar Evento
-          </button>
-        ) : (
-          <button onClick={() => alterarStatus('ABERTO')}>
-            Reabrir Evento
-          </button>
-        )}
-
-        <hr />
-
-        <h2>QR Code de Presença</h2>
-
-        <QRCodeSVG value={linkPresenca} size={240} />
-
-        <p>{linkPresenca}</p>
-
-        <hr />
-
-        <h2>Lista de Presença</h2>
-
-        <button onClick={exportarCSV}>
-          Exportar CSV
-        </button>
-
-        <br /><br />
-
-        {presencas.length === 0 && <p>Nenhuma presença registrada ainda</p>}
-
-        {presencas.map((p) => (
-          <div key={p.id} style={{ borderBottom: '1px solid #ccc', padding: 8 }}>
-            <strong>{p.nome}</strong>
-            <br />
-            Matrícula: {p.matricula}
-            <br />
-            Setor: {p.setor}
-            <br />
-            Hora: {new Date(p.data_hora).toLocaleTimeString()}
+          <div style={{ background: 'white', padding: 16, display: 'inline-block', borderRadius: 10 }}>
+            <QRCodeSVG value={linkPresenca} size={200} />
           </div>
-        ))}
+
+          <p style={{ marginTop: 10 }}>{linkPresenca}</p>
+
+          <hr />
+
+          <h2>Lista de Presença</h2>
+
+          <button
+            onClick={exportarCSV}
+            style={{
+              background: '#16a34a',
+              color: 'white',
+              border: 'none',
+              padding: '10px 14px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              marginBottom: 20
+            }}
+          >
+            Exportar CSV
+          </button>
+
+          {presencas.length === 0 && <p>Nenhuma presença registrada ainda</p>}
+
+          {presencas.map((p) => (
+            <div
+              key={p.id}
+              style={{
+                borderBottom: '1px solid #ddd',
+                padding: 12,
+                display: 'flex',
+                gap: 12,
+                alignItems: 'center'
+              }}
+            >
+              {/* FOTO */}
+              {p.foto_url && (
+                <img
+                  src={p.foto_url}
+                  alt="selfie"
+                  onClick={() => window.open(p.foto_url, '_blank')}
+                  style={{
+                    width: 60,
+                    height: 60,
+                    objectFit: 'cover',
+                    borderRadius: 8,
+                    border: '1px solid #ccc',
+                    cursor: 'pointer'
+                  }}
+                />
+              )}
+
+              {/* DADOS */}
+              <div>
+                <strong>{p.nome}</strong>
+                <br />
+                Matrícula: {p.matricula}
+                <br />
+                Setor: {p.setor}
+                <br />
+                Empresa: {p.empresa}
+                <br />
+                Hora: {new Date(p.data_hora).toLocaleTimeString()}
+              </div>
+            </div>
+          ))}
+        </div>
       </LayoutAdmin>
     </Protegido>
   )
