@@ -135,7 +135,7 @@ export default function RegistrarPresenca() {
             evento.longitude
           )
 
-          if (distancia > 0.02) {
+          if (distancia > 0.1) {
             setSalvando(false)
 
             alert(
