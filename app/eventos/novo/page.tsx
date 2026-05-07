@@ -19,6 +19,9 @@ export default function NovoEvento() {
   const [longitude, setLongitude] = useState('')
   const [salvando, setSalvando] = useState(false)
 
+  // 🔥 NOVO
+  const [exigirSelfie, setExigirSelfie] = useState(false)
+
   const pegarLocalizacao = () => {
     if (!navigator.geolocation) {
       alert('Geolocalização não suportada')
@@ -29,6 +32,7 @@ export default function NovoEvento() {
       (pos) => {
         setLatitude(pos.coords.latitude.toString())
         setLongitude(pos.coords.longitude.toString())
+
         alert('Localização capturada com sucesso!')
       },
       () => {
@@ -38,7 +42,13 @@ export default function NovoEvento() {
   }
 
   const criarEvento = async () => {
-    if (!titulo || !data || !instrutor || !horaInicio || !horaFim) {
+    if (
+      !titulo ||
+      !data ||
+      !instrutor ||
+      !horaInicio ||
+      !horaFim
+    ) {
       alert('Preencha todos os campos')
       return
     }
@@ -47,22 +57,36 @@ export default function NovoEvento() {
 
     const codigo = uuidv4()
 
-    const { data: userData } = await supabase.auth.getUser()
+    const { data: userData } =
+      await supabase.auth.getUser()
 
-    const { error } = await supabase.from('eventos').insert([
-      {
-        titulo,
-        tipo,
-        data,
-        instrutor,
-        codigo,
-        criado_por: userData.user?.id,
-        hora_inicio: horaInicio,
-        hora_fim: horaFim,
-        latitude: latitude ? Number(latitude) : null,
-        longitude: longitude ? Number(longitude) : null,
-      },
-    ])
+    const { error } = await supabase
+      .from('eventos')
+      .insert([
+        {
+          titulo,
+          tipo,
+          data,
+          instrutor,
+          codigo,
+
+          criado_por: userData.user?.id,
+
+          hora_inicio: horaInicio,
+          hora_fim: horaFim,
+
+          latitude: latitude
+            ? Number(latitude)
+            : null,
+
+          longitude: longitude
+            ? Number(longitude)
+            : null,
+
+          // 🔥 NOVO
+          exigir_selfie: exigirSelfie,
+        },
+      ])
 
     setSalvando(false)
 
@@ -74,7 +98,7 @@ export default function NovoEvento() {
 
     alert('Evento criado com sucesso!')
 
-    // reset
+    // RESET
     setTitulo('')
     setData('')
     setInstrutor('')
@@ -82,6 +106,7 @@ export default function NovoEvento() {
     setHoraFim('')
     setLatitude('')
     setLongitude('')
+    setExigirSelfie(false)
   }
 
   return (
@@ -93,24 +118,33 @@ export default function NovoEvento() {
           <Input
             label="Título"
             value={titulo}
-            onChange={(e: any) => setTitulo(e.target.value)}
+            onChange={(e: any) =>
+              setTitulo(e.target.value)
+            }
           />
 
           <div style={{ marginBottom: 12 }}>
             <label>Tipo</label>
+
             <select
               value={tipo}
-              onChange={(e) => setTipo(e.target.value)}
+              onChange={(e) =>
+                setTipo(e.target.value)
+              }
               style={{
                 width: '100%',
                 padding: 8,
                 borderRadius: 6,
-                border: '1px solid #ccc'
+                border: '1px solid #ccc',
               }}
             >
               <option value="DDS">DDS</option>
+
               <option value="DDQ">DDQ</option>
-              <option value="Treinamento">Treinamento</option>
+
+              <option value="Treinamento">
+                Treinamento
+              </option>
             </select>
           </div>
 
@@ -118,30 +152,38 @@ export default function NovoEvento() {
             label="Data"
             type="date"
             value={data}
-            onChange={(e: any) => setData(e.target.value)}
+            onChange={(e: any) =>
+              setData(e.target.value)
+            }
           />
 
           <Input
             label="Hora início"
             type="time"
             value={horaInicio}
-            onChange={(e: any) => setHoraInicio(e.target.value)}
+            onChange={(e: any) =>
+              setHoraInicio(e.target.value)
+            }
           />
 
           <Input
             label="Hora fim"
             type="time"
             value={horaFim}
-            onChange={(e: any) => setHoraFim(e.target.value)}
+            onChange={(e: any) =>
+              setHoraFim(e.target.value)
+            }
           />
 
           <Input
             label="Instrutor"
             value={instrutor}
-            onChange={(e: any) => setInstrutor(e.target.value)}
+            onChange={(e: any) =>
+              setInstrutor(e.target.value)
+            }
           />
 
-          {/* 🔥 BOTÃO GPS */}
+          {/* 🔥 GPS */}
           <button
             style={{
               width: '100%',
@@ -151,25 +193,60 @@ export default function NovoEvento() {
               border: 'none',
               borderRadius: 6,
               marginTop: 10,
-              cursor: 'pointer'
+              cursor: 'pointer',
             }}
             onClick={pegarLocalizacao}
           >
             📍 Usar minha localização
           </button>
 
-          {/* 🔍 MOSTRA COORDENADAS */}
+          {/* 🔍 COORDENADAS */}
           {latitude && longitude && (
-            <p style={{ fontSize: 12, color: '#555', marginTop: 8 }}>
-              Lat: {latitude} <br />
+            <p
+              style={{
+                fontSize: 12,
+                color: '#555',
+                marginTop: 8,
+              }}
+            >
+              Lat: {latitude}
+
+              <br />
+
               Lng: {longitude}
             </p>
           )}
 
+          {/* 🔥 SELFIE */}
+          <div style={{ marginTop: 16 }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={exigirSelfie}
+                onChange={(e) =>
+                  setExigirSelfie(
+                    e.target.checked
+                  )
+                }
+              />
+
+              Exigir selfie para presença
+            </label>
+          </div>
+
           <br />
 
           <Button onClick={criarEvento}>
-            {salvando ? 'Salvando...' : 'Salvar'}
+            {salvando
+              ? 'Salvando...'
+              : 'Salvar'}
           </Button>
         </div>
       </LayoutAdmin>
