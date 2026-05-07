@@ -18,14 +18,18 @@ type Evento = {
 
 export default function EventoDetalhe() {
   const params = useParams()
-  const id = params.id as string
+ const id = Array.isArray(params.id)
+  ? params.id[0]
+  : params.id
 
   const [evento, setEvento] = useState<Evento | null>(null)
   const [presencas, setPresencas] = useState<any[]>([])
 
   useEffect(() => {
+  if (id) {
     buscarEvento()
-  }, [])
+  }
+}, [id])
 
   async function buscarEvento() {
     const { data, error } = await supabase
