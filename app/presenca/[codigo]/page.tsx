@@ -42,6 +42,7 @@ type Evento = {
   hora_fim: string
   latitude: number | null
   longitude: number | null
+  exigir_selfie: boolean
 }
 
 export default function RegistrarPresenca() {
@@ -97,7 +98,7 @@ export default function RegistrarPresenca() {
       return
     }
 
-    if (!foto) {
+    if (evento.exigir_selfie && !foto) {
       alert('Tire uma selfie')
       return
     }
