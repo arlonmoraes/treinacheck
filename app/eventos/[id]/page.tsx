@@ -122,6 +122,13 @@ export default function EventoDetalhe() {
 
           <p>Instrutor: {evento.instrutor}</p>
 
+	  <p>
+ 	    Selfie obrigatória:{' '}
+  	    <strong>
+    	      {evento.exigir_selfie ? 'SIM' : 'NÃO'}
+  	   </strong>
+	 </p>
+
           <h2>QR Code de Presença</h2>
 
           <div

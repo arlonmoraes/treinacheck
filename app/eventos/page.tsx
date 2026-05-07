@@ -133,6 +133,7 @@ export default function Eventos() {
                 <p style={{ margin: 0, color: '#555' }}>
                   Instrutor: {evento.instrutor}
                 </p>
+
               </div>
 
               <Link href={`/eventos/${evento.id}`}>
