@@ -18,50 +18,45 @@ type Evento = {
 
 export default function EventoDetalhe() {
   const params = useParams()
- const id = Array.isArray(params.id)
-  ? params.id[0]
-  : params.id
 
   const [evento, setEvento] = useState<Evento | null>(null)
   const [presencas, setPresencas] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-  if (id) {
-    buscarEvento()
-  }
-}, [id])
+    async function carregar() {
+      const id = params.id as string
 
-  async function buscarEvento() {
-    const { data, error } = await supabase
-      .from('eventos')
-      .select('*')
-      .eq('id', id)
-      .single()
+      if (!id) return
 
-    if (error) {
-      console.log(error)
-      alert('Erro ao buscar evento')
-      return
+      const { data, error } = await supabase
+        .from('eventos')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (error) {
+        console.log(error)
+        alert('Erro ao buscar evento')
+        setLoading(false)
+        return
+      }
+
+      setEvento(data)
+
+      const { data: lista } = await supabase
+        .from('presencas')
+        .select('*')
+        .eq('evento_id', data.id)
+        .order('data_hora', { ascending: false })
+
+      setPresencas(lista || [])
+
+      setLoading(false)
     }
 
-    setEvento(data)
-    buscarPresencas(data.id)
-  }
-
-  async function buscarPresencas(eventoId: string) {
-    const { data, error } = await supabase
-      .from('presencas')
-      .select('*')
-      .eq('evento_id', eventoId)
-      .order('data_hora', { ascending: false })
-
-    if (error) {
-      console.log(error)
-      return
-    }
-
-    setPresencas(data || [])
-  }
+    carregar()
+  }, [])
 
   function exportarCSV() {
     if (!evento) return
@@ -82,10 +77,14 @@ export default function EventoDetalhe() {
       .map((linha) => linha.map((campo) => `"${campo}"`).join(';'))
       .join('\n')
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob([csv], {
+      type: 'text/csv;charset=utf-8;',
+    })
+
     const url = URL.createObjectURL(blob)
 
     const link = document.createElement('a')
+
     link.href = url
     link.download = `presencas-${evento.titulo}.csv`
     link.click()
@@ -93,8 +92,20 @@ export default function EventoDetalhe() {
     URL.revokeObjectURL(url)
   }
 
+  if (loading) {
+    return (
+      <div style={{ padding: 20 }}>
+        Carregando...
+      </div>
+    )
+  }
+
   if (!evento) {
-    return <div style={{ padding: 20 }}>Carregando...</div>
+    return (
+      <div style={{ padding: 20 }}>
+        Evento não encontrado
+      </div>
+    )
   }
 
   const linkPresenca = `https://treinacheck.vercel.app/presenca/${evento.codigo}`
@@ -106,16 +117,30 @@ export default function EventoDetalhe() {
           <h1>{evento.titulo}</h1>
 
           <p>Tipo: {evento.tipo}</p>
+
           <p>Data: {evento.data}</p>
+
           <p>Instrutor: {evento.instrutor}</p>
 
           <h2>QR Code de Presença</h2>
 
-          <div style={{ background: 'white', padding: 16, display: 'inline-block', borderRadius: 10 }}>
-            <QRCodeSVG value={linkPresenca} size={200} />
+          <div
+            style={{
+              background: 'white',
+              padding: 16,
+              display: 'inline-block',
+              borderRadius: 10,
+            }}
+          >
+            <QRCodeSVG
+              value={linkPresenca}
+              size={200}
+            />
           </div>
 
-          <p style={{ marginTop: 10 }}>{linkPresenca}</p>
+          <p style={{ marginTop: 10 }}>
+            {linkPresenca}
+          </p>
 
           <hr />
 
@@ -130,13 +155,15 @@ export default function EventoDetalhe() {
               padding: '10px 14px',
               borderRadius: 6,
               cursor: 'pointer',
-              marginBottom: 20
+              marginBottom: 20,
             }}
           >
             Exportar CSV
           </button>
 
-          {presencas.length === 0 && <p>Nenhuma presença registrada ainda</p>}
+          {presencas.length === 0 && (
+            <p>Nenhuma presença registrada ainda</p>
+          )}
 
           {presencas.map((p) => (
             <div
@@ -146,37 +173,48 @@ export default function EventoDetalhe() {
                 padding: 12,
                 display: 'flex',
                 gap: 12,
-                alignItems: 'center'
+                alignItems: 'center',
               }}
             >
-              {/* FOTO */}
               {p.foto_url && (
                 <img
                   src={p.foto_url}
                   alt="selfie"
-                  onClick={() => window.open(p.foto_url, '_blank')}
+                  onClick={() =>
+                    window.open(p.foto_url, '_blank')
+                  }
                   style={{
                     width: 60,
                     height: 60,
                     objectFit: 'cover',
                     borderRadius: 8,
                     border: '1px solid #ccc',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
                   }}
                 />
               )}
 
-              {/* DADOS */}
               <div>
                 <strong>{p.nome}</strong>
+
                 <br />
+
                 Matrícula: {p.matricula}
+
                 <br />
+
                 Setor: {p.setor}
+
                 <br />
+
                 Empresa: {p.empresa}
+
                 <br />
-                Hora: {new Date(p.data_hora).toLocaleTimeString()}
+
+                Hora:{' '}
+                {new Date(
+                  p.data_hora
+                ).toLocaleTimeString()}
               </div>
             </div>
           ))}
