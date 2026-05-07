@@ -238,15 +238,16 @@ export default function RegistrarPresenca() {
 
   return (
     <div
-      style={{
-        minHeight: '100vh',
-        background: '#f4f6f8',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 20,
-      }}
-    >
+  style={{
+    minHeight: '100vh',
+    background: '#f4f6f8',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    color: '#111827'
+  }}
+>
       <div
         style={{
           background: 'white',
