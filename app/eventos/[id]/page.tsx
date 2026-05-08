@@ -20,9 +20,14 @@ type Evento = {
 export default function EventoDetalhe() {
   const params = useParams()
 
-  const [evento, setEvento] = useState<Evento | null>(null)
-  const [presencas, setPresencas] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [evento, setEvento] =
+    useState<Evento | null>(null)
+
+  const [presencas, setPresencas] =
+    useState<any[]>([])
+
+  const [loading, setLoading] =
+    useState(true)
 
   useEffect(() => {
     async function carregar() {
@@ -30,11 +35,12 @@ export default function EventoDetalhe() {
 
       if (!id) return
 
-      const { data, error } = await supabase
-        .from('eventos')
-        .select('*')
-        .eq('id', id)
-        .single()
+      const { data, error } =
+        await supabase
+          .from('eventos')
+          .select('*')
+          .eq('id', id)
+          .single()
 
       if (error) {
         console.log(error)
@@ -45,11 +51,14 @@ export default function EventoDetalhe() {
 
       setEvento(data)
 
-      const { data: lista } = await supabase
-        .from('presencas')
-        .select('*')
-        .eq('evento_id', data.id)
-        .order('data_hora', { ascending: false })
+      const { data: lista } =
+        await supabase
+          .from('presencas')
+          .select('*')
+          .eq('evento_id', data.id)
+          .order('data_hora', {
+            ascending: false,
+          })
 
       setPresencas(lista || [])
 
@@ -63,39 +72,67 @@ export default function EventoDetalhe() {
     if (!evento) return
 
     const linhas = [
-      ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora', 'Foto'],
+      [
+        'Nome',
+        'Matrícula',
+        'Setor',
+        'Empresa',
+        'Data/Hora',
+        'Foto',
+      ],
+
       ...presencas.map((p) => [
         p.nome,
         p.matricula,
         p.setor,
         p.empresa,
-        new Date(p.data_hora).toLocaleString(),
+        new Date(
+          p.data_hora
+        ).toLocaleString(),
         p.foto_url || '',
       ]),
     ]
 
     const csv = linhas
-      .map((linha) => linha.map((campo) => `"${campo}"`).join(';'))
+      .map((linha) =>
+        linha
+          .map((campo) => `"${campo}"`)
+          .join(';')
+      )
       .join('\n')
 
     const blob = new Blob([csv], {
       type: 'text/csv;charset=utf-8;',
     })
 
-    const url = URL.createObjectURL(blob)
+    const url =
+      URL.createObjectURL(blob)
 
-    const link = document.createElement('a')
+    const link =
+      document.createElement('a')
 
     link.href = url
+
     link.download = `presencas-${evento.titulo}.csv`
+
     link.click()
 
     URL.revokeObjectURL(url)
   }
 
+  function copiarLink() {
+    if (!evento) return
+
+    navigator.clipboard.writeText(
+      linkPresenca
+    )
+
+    alert('Link copiado!')
+  }
+
   if (loading) {
     return (
-      <div style={{ padding: 20 }}>
+      <div className="p-10 text-white">
         Carregando...
       </div>
     )
@@ -103,7 +140,7 @@ export default function EventoDetalhe() {
 
   if (!evento) {
     return (
-      <div style={{ padding: 20 }}>
+      <div className="p-10 text-white">
         Evento não encontrado
       </div>
     )
@@ -114,120 +151,258 @@ export default function EventoDetalhe() {
   return (
     <Protegido>
       <LayoutAdmin>
-        <div style={{ padding: 20 }}>
-          <h1>{evento.titulo}</h1>
+        <div className="space-y-8">
+          {/* HEADER */}
+          <div>
+            <h1 className="text-4xl font-bold">
+              🎯 {evento.titulo}
+            </h1>
 
-          <p>Tipo: {evento.tipo}</p>
-
-          <p>Data: {evento.data}</p>
-
-          <p>Instrutor: {evento.instrutor}</p>
-
-	  <p>
- 	    Selfie obrigatória:{' '}
-  	    <strong>
-    	      {evento.exigir_selfie ? 'SIM' : 'NÃO'}
-  	   </strong>
-	 </p>
-
-          <h2>QR Code de Presença</h2>
-
-          <div
-            style={{
-              background: 'white',
-              padding: 16,
-              display: 'inline-block',
-              borderRadius: 10,
-            }}
-          >
-            <QRCodeSVG
-              value={linkPresenca}
-              size={200}
-            />
+            <p className="text-slate-400 mt-2">
+              Central completa do evento
+            </p>
           </div>
 
-          <p style={{ marginTop: 10 }}>
-            {linkPresenca}
-          </p>
+          {/* GRID */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* INFOS */}
+            <div className="xl:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+              <h2 className="text-2xl font-bold mb-6">
+                📋 Informações
+              </h2>
 
-          <hr />
-
-          <h2>Lista de Presença</h2>
-
-          <button
-            onClick={exportarCSV}
-            style={{
-              background: '#16a34a',
-              color: 'white',
-              border: 'none',
-              padding: '10px 14px',
-              borderRadius: 6,
-              cursor: 'pointer',
-              marginBottom: 20,
-            }}
-          >
-            Exportar CSV
-          </button>
-
-          {presencas.length === 0 && (
-            <p>Nenhuma presença registrada ainda</p>
-          )}
-
-          {presencas.map((p) => (
-            <div
-              key={p.id}
-              style={{
-                borderBottom: '1px solid #ddd',
-                padding: 12,
-                display: 'flex',
-                gap: 12,
-                alignItems: 'center',
-              }}
-            >
-              {p.foto_url && (
-                <img
-                  src={p.foto_url}
-                  alt="selfie"
-                  onClick={() =>
-                    window.open(p.foto_url, '_blank')
-                  }
-                  style={{
-                    width: 60,
-                    height: 60,
-                    objectFit: 'cover',
-                    borderRadius: 8,
-                    border: '1px solid #ccc',
-                    cursor: 'pointer',
-                  }}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Info
+                  titulo="📚 Tipo"
+                  valor={evento.tipo}
                 />
-              )}
 
-              <div>
-                <strong>{p.nome}</strong>
+                <Info
+                  titulo="📅 Data"
+                  valor={evento.data}
+                />
 
-                <br />
+                <Info
+                  titulo="👨‍🏫 Instrutor"
+                  valor={evento.instrutor}
+                />
 
-                Matrícula: {p.matricula}
+                <Info
+                  titulo="👥 Participantes"
+                  valor={presencas.length}
+                />
 
-                <br />
+                <Info
+                  titulo="📸 Selfie"
+                  valor={
+                    evento.exigir_selfie
+                      ? 'Obrigatória'
+                      : 'Opcional'
+                  }
+                />
 
-                Setor: {p.setor}
-
-                <br />
-
-                Empresa: {p.empresa}
-
-                <br />
-
-                Hora:{' '}
-                {new Date(
-                  p.data_hora
-                ).toLocaleTimeString()}
+                <Info
+                  titulo="🔐 Código"
+                  valor={evento.codigo.slice(
+                    0,
+                    8
+                  )}
+                />
               </div>
             </div>
-          ))}
+
+            {/* QR CODE */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center">
+              <h2 className="text-2xl font-bold mb-6">
+                📲 QR Code
+              </h2>
+
+              <div className="bg-white p-5 rounded-3xl">
+                <QRCodeSVG
+                  value={linkPresenca}
+                  size={220}
+                />
+              </div>
+
+              <button
+                onClick={copiarLink}
+                className="
+                  mt-6
+                  bg-blue-600
+                  hover:bg-blue-700
+                  transition-all
+                  px-5
+                  py-3
+                  rounded-2xl
+                  font-semibold
+                  w-full
+                "
+              >
+                Copiar Link
+              </button>
+
+              <button
+                onClick={exportarCSV}
+                className="
+                  mt-3
+                  bg-green-600
+                  hover:bg-green-700
+                  transition-all
+                  px-5
+                  py-3
+                  rounded-2xl
+                  font-semibold
+                  w-full
+                "
+              >
+                Exportar CSV
+              </button>
+            </div>
+          </div>
+
+          {/* LISTA */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold">
+                👥 Lista de Presença
+              </h2>
+
+              <div className="bg-slate-800 px-4 py-2 rounded-2xl">
+                {presencas.length} participantes
+              </div>
+            </div>
+
+            {presencas.length === 0 && (
+              <div className="text-center py-16 text-slate-400">
+                Nenhuma presença registrada
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {presencas.map((p) => (
+                <div
+                  key={p.id}
+                  className="
+                    bg-slate-800
+                    rounded-3xl
+                    p-5
+                    flex
+                    flex-col
+                    md:flex-row
+                    md:items-center
+                    gap-5
+                    hover:bg-slate-700
+                    transition-all
+                  "
+                >
+                  {/* FOTO */}
+                  {p.foto_url ? (
+                    <img
+                      src={p.foto_url}
+                      alt="selfie"
+                      onClick={() =>
+                        window.open(
+                          p.foto_url,
+                          '_blank'
+                        )
+                      }
+                      className="
+                        w-24
+                        h-24
+                        object-cover
+                        rounded-2xl
+                        border
+                        border-slate-600
+                        cursor-pointer
+                      "
+                    />
+                  ) : (
+                    <div
+                      className="
+                        w-24
+                        h-24
+                        rounded-2xl
+                        bg-slate-700
+                        flex
+                        items-center
+                        justify-center
+                        text-3xl
+                      "
+                    >
+                      👤
+                    </div>
+                  )}
+
+                  {/* INFOS */}
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold">
+                      {p.nome}
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                      <MiniInfo
+                        titulo="Matrícula"
+                        valor={p.matricula}
+                      />
+
+                      <MiniInfo
+                        titulo="Setor"
+                        valor={p.setor}
+                      />
+
+                      <MiniInfo
+                        titulo="Empresa"
+                        valor={p.empresa}
+                      />
+
+                      <MiniInfo
+                        titulo="Hora"
+                        valor={new Date(
+                          p.data_hora
+                        ).toLocaleTimeString()}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </LayoutAdmin>
     </Protegido>
+  )
+}
+
+/* INFO */
+function Info({
+  titulo,
+  valor,
+}: any) {
+  return (
+    <div className="bg-slate-800 p-5 rounded-2xl">
+      <p className="text-slate-400 text-sm">
+        {titulo}
+      </p>
+
+      <strong className="text-lg">
+        {valor}
+      </strong>
+    </div>
+  )
+}
+
+/* MINI INFO */
+function MiniInfo({
+  titulo,
+  valor,
+}: any) {
+  return (
+    <div className="bg-slate-900 p-3 rounded-2xl">
+      <p className="text-slate-500 text-xs">
+        {titulo}
+      </p>
+
+      <strong>{valor}</strong>
+    </div>
   )
 }
