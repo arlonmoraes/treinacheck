@@ -16,29 +16,36 @@ export default function Dashboard() {
   }, [])
 
   async function carregarDados() {
-    // Eventos
+    // EVENTOS
     const { data: eventos } = await supabase
       .from('eventos')
       .select('*')
 
     setTotalEventos(eventos?.length || 0)
 
-    const abertos = eventos?.filter(e => e.status !== 'Encerrado') || []
+    const abertos =
+      eventos?.filter(
+        (e) => e.status !== 'Encerrado'
+      ) || []
+
     setEventosAbertos(abertos.length)
 
-    // Presenças
+    // PRESENÇAS
     const { data: presencas } = await supabase
       .from('presencas')
       .select('*')
 
     setTotalPresencas(presencas?.length || 0)
 
-    // Presenças hoje
-    const hoje = new Date().toISOString().split('T')[0]
+    // PRESENÇAS HOJE
+    const hoje = new Date()
+      .toISOString()
+      .split('T')[0]
 
-    const hojeFiltrado = presencas?.filter(p =>
-      p.data_hora.startsWith(hoje)
-    ) || []
+    const hojeFiltrado =
+      presencas?.filter((p) =>
+        p.data_hora.startsWith(hoje)
+      ) || []
 
     setPresencasHoje(hojeFiltrado.length)
   }
@@ -46,39 +53,174 @@ export default function Dashboard() {
   return (
     <Protegido>
       <LayoutAdmin>
-        <h1 style={{ marginBottom: 20 }}>Dashboard</h1>
+        <div className="space-y-8">
+          {/* TOPO */}
+          <div>
+            <h1 className="text-4xl font-bold">
+              📊 Dashboard
+            </h1>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 20
-          }}
-        >
-          <Card titulo="Total de Eventos" valor={totalEventos} cor="#2563eb" />
-          <Card titulo="Eventos Abertos" valor={eventosAbertos} cor="#16a34a" />
-          <Card titulo="Total de Presenças" valor={totalPresencas} cor="#9333ea" />
-          <Card titulo="Presenças Hoje" valor={presencasHoje} cor="#f59e0b" />
+            <p className="text-slate-400 mt-2">
+              Visão geral do sistema
+            </p>
+          </div>
+
+          {/* CARDS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            <Card
+              titulo="Total de Eventos"
+              valor={totalEventos}
+              cor="from-blue-500 to-blue-700"
+              icone="📅"
+            />
+
+            <Card
+              titulo="Eventos Abertos"
+              valor={eventosAbertos}
+              cor="from-green-500 to-green-700"
+              icone="🟢"
+            />
+
+            <Card
+              titulo="Total Presenças"
+              valor={totalPresencas}
+              cor="from-purple-500 to-purple-700"
+              icone="👥"
+            />
+
+            <Card
+              titulo="Presenças Hoje"
+              valor={presencasHoje}
+              cor="from-orange-500 to-orange-700"
+              icone="🔥"
+            />
+          </div>
+
+          {/* PAINEL */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* CARD 1 */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+              <h2 className="text-2xl font-bold mb-4">
+                🚀 Sistema Ativo
+              </h2>
+
+              <p className="text-slate-400 leading-7">
+                O TreinaCheck está operando
+                normalmente.
+
+                <br />
+                <br />
+
+                Sistema protegido com:
+              </p>
+
+              <div className="mt-6 space-y-3">
+                <Item texto="QR Code seguro" />
+                <Item texto="Bloqueio por GPS" />
+                <Item texto="Selfie obrigatória" />
+                <Item texto="Controle de horário" />
+                <Item texto="Exportação CSV" />
+              </div>
+            </div>
+
+            {/* CARD 2 */}
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+              <h2 className="text-2xl font-bold mb-4">
+                📈 Resumo
+              </h2>
+
+              <div className="space-y-5">
+                <ResumoLinha
+                  titulo="Eventos cadastrados"
+                  valor={totalEventos}
+                />
+
+                <ResumoLinha
+                  titulo="Participantes"
+                  valor={totalPresencas}
+                />
+
+                <ResumoLinha
+                  titulo="Eventos ativos"
+                  valor={eventosAbertos}
+                />
+
+                <ResumoLinha
+                  titulo="Check-ins hoje"
+                  valor={presencasHoje}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </LayoutAdmin>
     </Protegido>
   )
 }
 
-// 🔹 componente de card
-function Card({ titulo, valor, cor }: any) {
+/* CARD */
+function Card({
+  titulo,
+  valor,
+  cor,
+  icone,
+}: any) {
   return (
     <div
-      style={{
-        background: 'white',
-        padding: 20,
-        borderRadius: 12,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-        borderLeft: `6px solid ${cor}`
-      }}
+      className={`
+        bg-gradient-to-br
+        ${cor}
+        rounded-3xl
+        p-6
+        shadow-2xl
+        hover:scale-[1.02]
+        transition-all
+      `}
     >
-      <p style={{ color: '#64748b', marginBottom: 8 }}>{titulo}</p>
-      <h2 style={{ fontSize: 28 }}>{valor}</h2>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-white/80 text-sm">
+            {titulo}
+          </p>
+
+          <h2 className="text-5xl font-bold mt-3">
+            {valor}
+          </h2>
+        </div>
+
+        <div className="text-5xl">
+          {icone}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* LINHA */
+function ResumoLinha({
+  titulo,
+  valor,
+}: any) {
+  return (
+    <div className="flex items-center justify-between bg-slate-800 p-4 rounded-2xl">
+      <span className="text-slate-300">
+        {titulo}
+      </span>
+
+      <strong className="text-2xl">
+        {valor}
+      </strong>
+    </div>
+  )
+}
+
+/* ITEM */
+function Item({
+  texto,
+}: any) {
+  return (
+    <div className="bg-slate-800 p-4 rounded-2xl">
+      ✅ {texto}
     </div>
   )
 }
