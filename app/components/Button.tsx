@@ -1,17 +1,29 @@
-'use client'
+type Props = {
+  children: React.ReactNode
+  onClick?: () => void
+  type?: 'button' | 'submit'
+}
 
-export default function Button({ children, onClick }: any) {
+export default function Button({
+  children,
+  onClick,
+  type = 'button',
+}: Props) {
   return (
     <button
+      type={type}
       onClick={onClick}
-      style={{
-        background: '#111827',
-        color: 'white',
-        padding: '10px 16px',
-        border: 'none',
-        borderRadius: 6,
-        cursor: 'pointer'
-      }}
+      className="
+        w-full
+        bg-blue-600
+        hover:bg-blue-700
+        transition-all
+        p-3
+        rounded-xl
+        font-semibold
+        text-white
+        shadow-lg
+      "
     >
       {children}
     </button>

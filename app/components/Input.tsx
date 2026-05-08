@@ -1,19 +1,37 @@
-'use client'
+type Props = {
+  label: string
+  type?: string
+  value: any
+  onChange: any
+}
 
-export default function Input({ label, ...props }: any) {
+export default function Input({
+  label,
+  type = 'text',
+  value,
+  onChange,
+}: Props) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <label style={{ display: 'block', marginBottom: 4 }}>
+    <div className="mb-4">
+      <label className="block mb-2 text-sm text-slate-300">
         {label}
       </label>
+
       <input
-        {...props}
-        style={{
-          width: '100%',
-          padding: 8,
-          borderRadius: 6,
-          border: '1px solid #ccc'
-        }}
+        type={type}
+        value={value}
+        onChange={onChange}
+        className="
+          w-full
+          bg-slate-800
+          border
+          border-slate-700
+          rounded-xl
+          p-3
+          text-white
+          outline-none
+          focus:border-blue-500
+        "
       />
     </div>
   )
