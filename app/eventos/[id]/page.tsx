@@ -14,6 +14,7 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
+  exigir_selfie: boolean
 }
 
 export default function EventoDetalhe() {
