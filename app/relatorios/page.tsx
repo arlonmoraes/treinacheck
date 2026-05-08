@@ -1,9 +1,9 @@
 'use client'
 
+import LayoutAdmin from '@/app/components/LayoutAdmin'
+import Protegido from '@/app/components/Protegido'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
-import Protegido from '@/app/components/Protegido'
-import LayoutAdmin from '@/app/components/LayoutAdmin'
 
 type Evento = {
   id: string
@@ -14,8 +14,7 @@ type Evento = {
 
 export default function Relatorios() {
   const [eventos, setEventos] = useState<Evento[]>([])
-  const [eventoId, setEventoId] = useState('')
-  const [dados, setDados] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     buscarEventos()
@@ -24,125 +23,86 @@ export default function Relatorios() {
   async function buscarEventos() {
     const { data, error } = await supabase
       .from('eventos')
-      .select('id, titulo, tipo, data')
-      .order('created_at', { ascending: false })
+      .select('*')
+      .order('data', { ascending: false })
 
     if (error) {
       console.log(error)
-      alert('Erro ao buscar eventos')
       return
     }
 
     setEventos(data || [])
-  }
-
-  async function buscar() {
-    if (!eventoId) {
-      alert('Selecione um evento')
-      return
-    }
-
-    const { data, error } = await supabase
-      .from('presencas')
-      .select('*')
-      .eq('evento_id', eventoId)
-      .order('data_hora', { ascending: false })
-
-    if (error) {
-      console.log(error)
-      alert('Erro ao buscar presenças')
-      return
-    }
-
-    setDados(data || [])
-  }
-
-  function exportarCSV() {
-    const linhas = [
-      ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
-      ...dados.map((p) => [
-        p.nome,
-        p.matricula,
-        p.setor,
-        p.empresa,
-        new Date(p.data_hora).toLocaleString(),
-      ]),
-    ]
-
-    const csv = linhas
-      .map((linha) => linha.map((campo) => `"${campo}"`).join(';'))
-      .join('\n')
-
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `relatorio-evento.csv`
-    link.click()
-
-    URL.revokeObjectURL(url)
+    setLoading(false)
   }
 
   return (
     <Protegido>
       <LayoutAdmin>
-        <h1>Relatório por Evento</h1>
+        <div className="space-y-6">
+          {/* TOPO */}
+          <div>
+            <h1 className="text-3xl font-bold">
+              📄 Relatórios
+            </h1>
 
-        <div style={{ background: 'white', padding: 20, borderRadius: 10, marginTop: 20 }}>
-          <label>Selecione o evento</label>
-          <br />
+            <p className="text-slate-400 mt-1">
+              Visualize todos os eventos cadastrados
+            </p>
+          </div>
 
-          <select
-            value={eventoId}
-            onChange={(e) => setEventoId(e.target.value)}
-            style={{
-              width: '100%',
-              maxWidth: 500,
-              padding: 10,
-              borderRadius: 8,
-              border: '1px solid #ccc',
-              marginTop: 6
-            }}
-          >
-            <option value="">Escolha...</option>
+          {/* CARD */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            {loading ? (
+              <p className="text-slate-400">
+                Carregando...
+              </p>
+            ) : eventos.length === 0 ? (
+              <p className="text-slate-400">
+                Nenhum evento encontrado
+              </p>
+            ) : (
+              <div className="overflow-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 text-left">
+                      <th className="p-4">
+                        Evento
+                      </th>
 
-            {eventos.map((evento) => (
-              <option key={evento.id} value={evento.id}>
-                {evento.data} - {evento.tipo} - {evento.titulo}
-              </option>
-            ))}
-          </select>
+                      <th className="p-4">
+                        Tipo
+                      </th>
 
-          <br /><br />
+                      <th className="p-4">
+                        Data
+                      </th>
+                    </tr>
+                  </thead>
 
-          <button onClick={buscar}>Buscar presenças</button>
+                  <tbody>
+                    {eventos.map((evento) => (
+                      <tr
+                        key={evento.id}
+                        className="border-b border-slate-800 hover:bg-slate-800 transition-all"
+                      >
+                        <td className="p-4 font-medium">
+                          {evento.titulo}
+                        </td>
 
-          <br /><br />
+                        <td className="p-4 text-slate-300">
+                          {evento.tipo}
+                        </td>
 
-          <button onClick={exportarCSV}>Exportar CSV</button>
-        </div>
-
-        <div style={{ background: 'white', padding: 20, borderRadius: 10, marginTop: 20 }}>
-          <h2>Resultados</h2>
-
-          <p>Total de presentes: <strong>{dados.length}</strong></p>
-
-          {dados.length === 0 && <p>Nenhum registro encontrado.</p>}
-
-          {dados.map((p) => (
-            <div key={p.id} style={{ borderBottom: '1px solid #e5e7eb', padding: '10px 0' }}>
-              <strong>{p.nome}</strong>
-              <br />
-              Matrícula: {p.matricula} • Setor: {p.setor}
-              <br />
-              Empresa: {p.empresa}
-              <br />
-              <span style={{ color: '#64748b' }}>
-                {new Date(p.data_hora).toLocaleString()}
-              </span>
-            </div>
-          ))}
+                        <td className="p-4 text-slate-300">
+                          {evento.data}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </LayoutAdmin>
     </Protegido>
