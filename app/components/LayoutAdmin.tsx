@@ -17,143 +17,82 @@ export default function LayoutAdmin({
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#eef2f7',
-        color: '#111827',
-      }}
-    >
-      <header
-        style={{
-          background: '#0f172a',
-          color: 'white',
-          padding: '18px 16px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1100,
-            margin: '0 auto',
-          }}
-        >
-          {/* LOGO + TÍTULO */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              marginBottom: 14,
-            }}
-          >
-            <img
-              src="/logo.png"
-              alt="Logo"
-              style={{
-                width: 55,
-                height: 55,
-                objectFit: 'contain',
-                borderRadius: 10,
-                background: 'white',
-                padding: 4,
-              }}
-            />
+    <div className="min-h-screen bg-slate-950 text-white flex">
+      {/* SIDEBAR */}
+      <aside className="w-72 bg-slate-900 border-r border-slate-800 p-6 flex flex-col">
+        {/* LOGO */}
+        <div className="flex items-center gap-3 mb-10">
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="w-14 h-14 rounded-xl bg-white p-1"
+          />
 
-            <div>
-              <h2 style={{ margin: 0 }}>
-                TreinaCheck
-              </h2>
+          <div>
+            <h1 className="text-2xl font-bold">
+              TreinaCheck
+            </h1>
 
-              <p
-                style={{
-                  margin: '4px 0 0',
-                  color: '#cbd5e1',
-                }}
-              >
-                Sistema de presença digital
-              </p>
-            </div>
+            <p className="text-slate-400 text-sm">
+              Presença Digital
+            </p>
           </div>
-
-          {/* MENU */}
-          <nav
-            style={{
-              display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(120px, 1fr))',
-              gap: 8,
-            }}
-          >
-            <Link style={linkStyle} href="/">
-              Início
-            </Link>
-
-            <Link
-              style={linkStyle}
-              href="/dashboard"
-            >
-              Dashboard
-            </Link>
-
-            <Link
-              style={linkStyle}
-              href="/eventos"
-            >
-              Eventos
-            </Link>
-
-            <Link
-              style={linkStyle}
-              href="/eventos/novo"
-            >
-              Novo Evento
-            </Link>
-
-            <Link
-              style={linkStyle}
-              href="/relatorios"
-            >
-              Relatórios
-            </Link>
-
-            <button
-              onClick={sair}
-              style={logoutStyle}
-            >
-              Sair
-            </button>
-          </nav>
         </div>
-      </header>
 
-      <main
-        style={{
-          maxWidth: 1100,
-          margin: '0 auto',
-          padding: 16,
-        }}
-      >
+        {/* MENU */}
+        <nav className="flex flex-col gap-3">
+          <Link
+            href="/"
+            className={menuItem}
+          >
+            🏠 Início
+          </Link>
+
+          <Link
+            href="/dashboard"
+            className={menuItem}
+          >
+            📊 Dashboard
+          </Link>
+
+          <Link
+            href="/eventos"
+            className={menuItem}
+          >
+            📅 Eventos
+          </Link>
+
+          <Link
+            href="/eventos/novo"
+            className={menuItem}
+          >
+            ➕ Novo Evento
+          </Link>
+
+          <Link
+            href="/relatorios"
+            className={menuItem}
+          >
+            📄 Relatórios
+          </Link>
+        </nav>
+
+        {/* BOTÃO SAIR */}
+        <button
+          onClick={sair}
+          className="mt-auto bg-red-600 hover:bg-red-700 transition-all p-3 rounded-xl font-semibold"
+        >
+          🚪 Sair
+        </button>
+      </aside>
+
+      {/* CONTEÚDO */}
+      <main className="flex-1 p-8 overflow-auto">
         {children}
       </main>
     </div>
   )
 }
 
-const linkStyle = {
-  color: 'white',
-  textDecoration: 'none',
-  background: '#1e293b',
-  padding: '10px 12px',
-  borderRadius: 8,
-  textAlign: 'center' as const,
-}
-
-const logoutStyle = {
-  background: '#dc2626',
-  color: 'white',
-  border: 'none',
-  padding: '10px 12px',
-  borderRadius: 8,
-  cursor: 'pointer',
-}
+const menuItem =
+  'bg-slate-800 hover:bg-slate-700 transition-all p-4 rounded-xl text-slate-200 hover:text-white font-medium'
