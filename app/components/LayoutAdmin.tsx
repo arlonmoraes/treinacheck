@@ -4,7 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase'
 
-export default function LayoutAdmin({ children }: { children: React.ReactNode }) {
+export default function LayoutAdmin({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const router = useRouter()
 
   async function sair() {
@@ -13,42 +17,123 @@ export default function LayoutAdmin({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#eef2f7', color: '#111827' }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#eef2f7',
+        color: '#111827',
+      }}
+    >
       <header
         style={{
           background: '#0f172a',
           color: 'white',
           padding: '18px 16px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.15)'
+          boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
         }}
       >
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <h2 style={{ margin: 0 }}>TreinaCheck</h2>
-          <p style={{ margin: '4px 0 14px', color: '#cbd5e1' }}>
-            Sistema de presença digital
-          </p>
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: '0 auto',
+          }}
+        >
+          {/* LOGO + TÍTULO */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginBottom: 14,
+            }}
+          >
+            <img
+              src="/logo.png"
+              alt="Logo"
+              style={{
+                width: 55,
+                height: 55,
+                objectFit: 'contain',
+                borderRadius: 10,
+                background: 'white',
+                padding: 4,
+              }}
+            />
 
+            <div>
+              <h2 style={{ margin: 0 }}>
+                TreinaCheck
+              </h2>
+
+              <p
+                style={{
+                  margin: '4px 0 0',
+                  color: '#cbd5e1',
+                }}
+              >
+                Sistema de presença digital
+              </p>
+            </div>
+          </div>
+
+          {/* MENU */}
           <nav
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-              gap: 8
+              gridTemplateColumns:
+                'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: 8,
             }}
           >
-            <Link style={linkStyle} href="/">Início</Link>
-	    <Link style={linkStyle} href="/dashboard">Dashboard</Link>
-            <Link style={linkStyle} href="/eventos">Eventos</Link>
-            <Link style={linkStyle} href="/eventos/novo">Novo Evento</Link>
-            <Link style={linkStyle} href="/relatorios">Relatórios</Link>
+            <Link style={linkStyle} href="/">
+              Início
+            </Link>
 
-            <button onClick={sair} style={logoutStyle}>
+            <Link
+              style={linkStyle}
+              href="/dashboard"
+            >
+              Dashboard
+            </Link>
+
+            <Link
+              style={linkStyle}
+              href="/eventos"
+            >
+              Eventos
+            </Link>
+
+            <Link
+              style={linkStyle}
+              href="/eventos/novo"
+            >
+              Novo Evento
+            </Link>
+
+            <Link
+              style={linkStyle}
+              href="/relatorios"
+            >
+              Relatórios
+            </Link>
+
+            <button
+              onClick={sair}
+              style={logoutStyle}
+            >
               Sair
             </button>
           </nav>
         </div>
       </header>
 
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: 16 }}>
+      <main
+        style={{
+          maxWidth: 1100,
+          margin: '0 auto',
+          padding: 16,
+        }}
+      >
         {children}
       </main>
     </div>
@@ -61,7 +146,7 @@ const linkStyle = {
   background: '#1e293b',
   padding: '10px 12px',
   borderRadius: 8,
-  textAlign: 'center' as const
+  textAlign: 'center' as const,
 }
 
 const logoutStyle = {
@@ -70,5 +155,5 @@ const logoutStyle = {
   border: 'none',
   padding: '10px 12px',
   borderRadius: 8,
-  cursor: 'pointer'
+  cursor: 'pointer',
 }
