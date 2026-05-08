@@ -165,12 +165,12 @@ export default function RegistrarPresenca() {
           return
         }
 
-        const nomeArquivo = `${Date.now()}-${foto.name}`
+        const nomeArquivo = `${Date.now()}-${foto!.name}`
 
         const { error: erroUpload } =
           await supabase.storage
             .from('selfies')
-            .upload(nomeArquivo, foto)
+            .upload(nomeArquivo, foto!)
 
         if (erroUpload) {
           console.log(erroUpload)
