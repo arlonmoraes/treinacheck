@@ -28,7 +28,9 @@ export default function Eventos() {
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('created_at', {
+        ascending: false,
+      })
 
     if (error) {
       console.log(error)
@@ -46,7 +48,7 @@ export default function Eventos() {
 
     if (!confirmar) return
 
-    // 🔥 remove presenças primeiro
+    // remove presenças
     const { error: erroPresencas } =
       await supabase
         .from('presencas')
@@ -59,7 +61,7 @@ export default function Eventos() {
       return
     }
 
-    // 🔥 remove evento
+    // remove evento
     const { error } = await supabase
       .from('eventos')
       .delete()
@@ -76,169 +78,214 @@ export default function Eventos() {
     buscarEventos()
   }
 
-  const eventosFiltrados = eventos.filter((e) =>
-    e.titulo
-      .toLowerCase()
-      .includes(busca.toLowerCase())
+  const eventosFiltrados = eventos.filter(
+    (e) =>
+      e.titulo
+        .toLowerCase()
+        .includes(busca.toLowerCase())
   )
 
   return (
     <Protegido>
       <LayoutAdmin>
-        <h1 style={{ marginBottom: 20 }}>
-          Eventos
-        </h1>
+        <div className="space-y-8">
+          {/* TOPO */}
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-bold">
+                📅 Eventos
+              </h1>
 
-        <input
-          placeholder="Buscar evento..."
-          value={busca}
-          onChange={(e) =>
-            setBusca(e.target.value)
-          }
-          style={{
-            width: '100%',
-            maxWidth: 400,
-            padding: 10,
-            borderRadius: 8,
-            border: '1px solid #ccc',
-            marginBottom: 20,
-          }}
-        />
-
-        <div style={{ marginBottom: 20 }}>
-          <Link href="/eventos/novo">
-            <button
-              style={{
-                background: '#0f172a',
-                color: 'white',
-                padding: '10px 16px',
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer',
-              }}
-            >
-              + Criar novo evento
-            </button>
-          </Link>
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: 16,
-          }}
-        >
-          {eventosFiltrados.map((evento) => (
-            <div
-              key={evento.id}
-              style={{
-                background: 'white',
-                padding: 16,
-                borderRadius: 10,
-                boxShadow:
-                  '0 4px 12px rgba(0,0,0,0.06)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <h2
-                  style={{ marginBottom: 8 }}
-                >
-                  {evento.titulo}
-                </h2>
-
-                <p
-                  style={{
-                    margin: 0,
-                    color: '#555',
-                  }}
-                >
-                  Tipo: {evento.tipo}
-                </p>
-
-                <p
-                  style={{
-                    margin: 0,
-                    color: '#555',
-                  }}
-                >
-                  Data: {evento.data}
-                </p>
-
-                <p
-                  style={{
-                    margin: 0,
-                    color: '#555',
-                  }}
-                >
-                  Instrutor:{' '}
-                  {evento.instrutor}
-                </p>
-
-                <p
-                  style={{
-                    marginTop: 8,
-                  }}
-                >
-                  Status:{' '}
-                  <strong>
-                    {evento.status ||
-                      'Aberto'}
-                  </strong>
-                </p>
-              </div>
-
-              {/* BOTÕES */}
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 8,
-                  marginTop: 12,
-                }}
-              >
-                <Link
-                  href={`/eventos/${evento.id}`}
-                  style={{ flex: 1 }}
-                >
-                  <button
-                    style={{
-                      width: '100%',
-                      background: '#2563eb',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px',
-                      borderRadius: 6,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Ver QR Code
-                  </button>
-                </Link>
-
-                <button
-                  onClick={() =>
-                    excluirEvento(evento.id)
-                  }
-                  style={{
-                    background: '#dc2626',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Excluir
-                </button>
-              </div>
+              <p className="text-slate-400 mt-2">
+                Gerencie os treinamentos e DDS
+              </p>
             </div>
-          ))}
+
+            <Link href="/eventos/novo">
+              <button className="bg-blue-600 hover:bg-blue-700 transition-all px-5 py-3 rounded-2xl font-semibold shadow-lg">
+                + Criar novo evento
+              </button>
+            </Link>
+          </div>
+
+          {/* BUSCA */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+            <input
+              placeholder="Buscar evento..."
+              value={busca}
+              onChange={(e) =>
+                setBusca(e.target.value)
+              }
+              className="
+                w-full
+                bg-slate-800
+                border
+                border-slate-700
+                rounded-2xl
+                p-4
+                outline-none
+                focus:border-blue-500
+                transition-all
+              "
+            />
+          </div>
+
+          {/* GRID */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {eventosFiltrados.map((evento) => (
+              <div
+                key={evento.id}
+                className="
+                  bg-slate-900
+                  border
+                  border-slate-800
+                  rounded-3xl
+                  p-6
+                  shadow-2xl
+                  hover:scale-[1.02]
+                  transition-all
+                "
+              >
+                {/* HEADER */}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">
+                      {evento.titulo}
+                    </h2>
+
+                    <p className="text-slate-400 mt-1">
+                      {evento.tipo}
+                    </p>
+                  </div>
+
+                  <StatusBadge
+                    status={
+                      evento.status || 'Aberto'
+                    }
+                  />
+                </div>
+
+                {/* INFOS */}
+                <div className="space-y-3 mt-6">
+                  <Info
+                    titulo="📅 Data"
+                    valor={evento.data}
+                  />
+
+                  <Info
+                    titulo="👨‍🏫 Instrutor"
+                    valor={evento.instrutor}
+                  />
+
+                  <Info
+                    titulo="🔐 Código"
+                    valor={evento.codigo.slice(
+                      0,
+                      8
+                    )}
+                  />
+                </div>
+
+                {/* BOTÕES */}
+                <div className="flex gap-3 mt-8">
+                  <Link
+                    href={`/eventos/${evento.id}`}
+                    className="flex-1"
+                  >
+                    <button
+                      className="
+                        w-full
+                        bg-blue-600
+                        hover:bg-blue-700
+                        transition-all
+                        py-3
+                        rounded-2xl
+                        font-semibold
+                      "
+                    >
+                      QR Code
+                    </button>
+                  </Link>
+
+                  <button
+                    onClick={() =>
+                      excluirEvento(evento.id)
+                    }
+                    className="
+                      bg-red-600
+                      hover:bg-red-700
+                      transition-all
+                      px-5
+                      rounded-2xl
+                      font-semibold
+                    "
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* VAZIO */}
+          {eventosFiltrados.length === 0 && (
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center">
+              <h2 className="text-2xl font-bold">
+                Nenhum evento encontrado
+              </h2>
+
+              <p className="text-slate-400 mt-3">
+                Tente outra busca
+              </p>
+            </div>
+          )}
         </div>
       </LayoutAdmin>
     </Protegido>
+  )
+}
+
+/* INFO */
+function Info({
+  titulo,
+  valor,
+}: any) {
+  return (
+    <div className="bg-slate-800 p-4 rounded-2xl">
+      <p className="text-slate-400 text-sm">
+        {titulo}
+      </p>
+
+      <strong className="text-lg">
+        {valor}
+      </strong>
+    </div>
+  )
+}
+
+/* STATUS */
+function StatusBadge({
+  status,
+}: any) {
+  const encerrado =
+    status === 'Encerrado'
+
+  return (
+    <div
+      className={`
+        px-4
+        py-2
+        rounded-full
+        text-sm
+        font-bold
+        ${
+          encerrado
+            ? 'bg-red-500/20 text-red-400'
+            : 'bg-green-500/20 text-green-400'
+        }
+      `}
+    >
+      {status}
+    </div>
   )
 }
