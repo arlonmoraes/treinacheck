@@ -127,25 +127,42 @@ export default function NovoEvento() {
             <label>Tipo</label>
 
             <select
-              value={tipo}
-              onChange={(e) =>
-                setTipo(e.target.value)
-              }
-              style={{
-                width: '100%',
-                padding: 8,
-                borderRadius: 6,
-                border: '1px solid #ccc',
-              }}
-            >
-              <option value="DDS">DDS</option>
+  value={tipo}
+  onChange={(e) =>
+    setTipo(e.target.value)
+  }
+  style={{
+    width: '100%',
+    padding: 10,
+    borderRadius: 8,
+    border: '1px solid #334155',
+    background: 'white',
+    color: '#111827',
+    fontSize: 16,
+    outline: 'none',
+  }}
+>
+  <option
+    value="DDS"
+    style={{ color: '#111827' }}
+  >
+    DDS
+  </option>
 
-              <option value="DDQ">DDQ</option>
+  <option
+    value="DDQ"
+    style={{ color: '#111827' }}
+  >
+    DDQ
+  </option>
 
-              <option value="Treinamento">
-                Treinamento
-              </option>
-            </select>
+  <option
+    value="Treinamento"
+    style={{ color: '#111827' }}
+  >
+    Treinamento
+  </option>
+</select>
           </div>
 
           <Input
