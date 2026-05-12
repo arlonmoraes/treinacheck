@@ -7,7 +7,7 @@ import { supabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import 'jspdf-autotable'
 
 type Evento = {
   id: string
@@ -176,32 +176,32 @@ export default function EventoDetalhe() {
       48
     )
 
-    autoTable(doc, {
-      startY: 60,
+    ;(doc as any).autoTable({
+  startY: 60,
 
-      head: [
-        [
-          'Nome',
-          'Matrícula',
-          'Setor',
-          'Empresa',
-          'Hora',
-        ],
-      ],
+  head: [
+    [
+      'Nome',
+      'Matrícula',
+      'Setor',
+      'Empresa',
+      'Hora',
+    ],
+  ],
 
-      body: presencas.map((p) => [
-        p.nome || '',
-        p.matricula || '',
-        p.setor || '',
-        p.empresa || '',
+  body: presencas.map((p) => [
+    p.nome || '',
+    p.matricula || '',
+    p.setor || '',
+    p.empresa || '',
 
-        p.data_hora
-          ? new Date(
-              p.data_hora
-            ).toLocaleTimeString()
-          : '',
-      ]),
-    })
+    p.data_hora
+      ? new Date(
+          p.data_hora
+        ).toLocaleTimeString()
+      : '',
+  ]),
+})
 
     doc.save(
       `relatorio-${evento.titulo}.pdf`
