@@ -4,6 +4,7 @@ import LayoutAdmin from '@/app/components/LayoutAdmin'
 import Protegido from '@/app/components/Protegido'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
+import Link from 'next/link'
 
 type Evento = {
   id: string
@@ -28,6 +29,7 @@ export default function Relatorios() {
 
     if (error) {
       console.log(error)
+      alert('Erro ao buscar eventos')
       return
     }
 
@@ -38,69 +40,87 @@ export default function Relatorios() {
   return (
     <Protegido>
       <LayoutAdmin>
-        <div className="space-y-6">
-          {/* TOPO */}
+        <div className="space-y-8">
+          {/* HEADER */}
           <div>
-            <h1 className="text-3xl font-bold">
+            <h1 className="text-4xl font-bold">
               📄 Relatórios
             </h1>
 
-            <p className="text-slate-400 mt-1">
-              Visualize todos os eventos cadastrados
+            <p className="text-slate-400 mt-2">
+              Visualize e exporte relatórios dos eventos
             </p>
           </div>
 
           {/* CARD */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl overflow-auto">
             {loading ? (
-              <p className="text-slate-400">
+              <div className="text-slate-400">
                 Carregando...
-              </p>
-            ) : eventos.length === 0 ? (
-              <p className="text-slate-400">
-                Nenhum evento encontrado
-              </p>
-            ) : (
-              <div className="overflow-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-400 text-left">
-                      <th className="p-4">
-                        Evento
-                      </th>
-
-                      <th className="p-4">
-                        Tipo
-                      </th>
-
-                      <th className="p-4">
-                        Data
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {eventos.map((evento) => (
-                      <tr
-                        key={evento.id}
-                        className="border-b border-slate-800 hover:bg-slate-800 transition-all"
-                      >
-                        <td className="p-4 font-medium">
-                          {evento.titulo}
-                        </td>
-
-                        <td className="p-4 text-slate-300">
-                          {evento.tipo}
-                        </td>
-
-                        <td className="p-4 text-slate-300">
-                          {evento.data}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-700 text-slate-400">
+                    <th className="p-4">
+                      Evento
+                    </th>
+
+                    <th className="p-4">
+                      Tipo
+                    </th>
+
+                    <th className="p-4">
+                      Data
+                    </th>
+
+                    <th className="p-4">
+                      Ações
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {eventos.map((evento) => (
+                    <tr
+                      key={evento.id}
+                      className="border-b border-slate-800 hover:bg-slate-800 transition-all"
+                    >
+                      <td className="p-4 font-medium">
+                        {evento.titulo}
+                      </td>
+
+                      <td className="p-4">
+                        {evento.tipo}
+                      </td>
+
+                      <td className="p-4">
+                        {evento.data}
+                      </td>
+
+                      <td className="p-4">
+                        <Link
+                          href={`/eventos/${evento.id}`}
+                        >
+                          <button
+                            className="
+                              bg-green-600
+                              hover:bg-green-700
+                              px-4
+                              py-2
+                              rounded-xl
+                              font-semibold
+                              transition-all
+                            "
+                          >
+                            📥 Baixar Relatório
+                          </button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>
