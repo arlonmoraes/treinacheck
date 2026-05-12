@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 type Evento = {
   id: string
@@ -68,6 +70,7 @@ export default function EventoDetalhe() {
     carregar()
   }, [])
 
+  /* CSV */
   function exportarCSV() {
     if (!evento) return
 
@@ -79,7 +82,6 @@ export default function EventoDetalhe() {
           'Setor',
           'Empresa',
           'Data/Hora',
-          'Foto',
         ],
 
         ...presencas.map((p) => [
@@ -93,8 +95,6 @@ export default function EventoDetalhe() {
                 p.data_hora
               ).toLocaleString()
             : '',
-
-          p.foto_url || '',
         ]),
       ]
 
@@ -140,6 +140,72 @@ export default function EventoDetalhe() {
 
       alert('Erro ao exportar CSV')
     }
+  }
+
+  /* PDF */
+  function exportarPDF() {
+    if (!evento) return
+
+    const doc = new jsPDF()
+
+    doc.setFontSize(20)
+
+    doc.text(
+      `Relatório - ${evento.titulo}`,
+      14,
+      20
+    )
+
+    doc.setFontSize(11)
+
+    doc.text(
+      `Tipo: ${evento.tipo}`,
+      14,
+      32
+    )
+
+    doc.text(
+      `Instrutor: ${evento.instrutor}`,
+      14,
+      40
+    )
+
+    doc.text(
+      `Data: ${evento.data}`,
+      14,
+      48
+    )
+
+    autoTable(doc, {
+      startY: 60,
+
+      head: [
+        [
+          'Nome',
+          'Matrícula',
+          'Setor',
+          'Empresa',
+          'Hora',
+        ],
+      ],
+
+      body: presencas.map((p) => [
+        p.nome || '',
+        p.matricula || '',
+        p.setor || '',
+        p.empresa || '',
+
+        p.data_hora
+          ? new Date(
+              p.data_hora
+            ).toLocaleTimeString()
+          : '',
+      ]),
+    })
+
+    doc.save(
+      `relatorio-${evento.titulo}.pdf`
+    )
   }
 
   function copiarLink() {
@@ -278,6 +344,23 @@ export default function EventoDetalhe() {
                 "
               >
                 Exportar CSV
+              </button>
+
+              <button
+                onClick={exportarPDF}
+                className="
+                  mt-3
+                  bg-red-600
+                  hover:bg-red-700
+                  transition-all
+                  px-5
+                  py-3
+                  rounded-2xl
+                  font-semibold
+                  w-full
+                "
+              >
+                Exportar PDF
               </button>
             </div>
           </div>
