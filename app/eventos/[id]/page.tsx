@@ -7,7 +7,7 @@ import { supabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
 type Evento = {
   id: string
