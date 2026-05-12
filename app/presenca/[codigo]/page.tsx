@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
-import Input from '@/app/components/Input'
-import Button from '@/app/components/Button'
 
 function calcularDistancia(
   lat1: number,
@@ -14,18 +12,30 @@ function calcularDistancia(
 ) {
   const R = 6371
 
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
+  const dLat =
+    ((lat2 - lat1) * Math.PI) / 180
+
+  const dLon =
+    ((lon2 - lon1) * Math.PI) / 180
 
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) *
-      Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLat / 2) *
+      Math.sin(dLat / 2) +
+    Math.cos(
+      (lat1 * Math.PI) / 180
+    ) *
+      Math.cos(
+        (lat2 * Math.PI) / 180
+      ) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2)
 
   const c =
-    2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    2 *
+    Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    )
 
   return R * c
 }
@@ -48,18 +58,32 @@ type Evento = {
 export default function RegistrarPresenca() {
   const params = useParams()
 
-  const codigo = params?.codigo?.toString()
+  const codigo =
+    params?.codigo?.toString()
 
-  const [evento, setEvento] = useState<Evento | null>(null)
+  const [evento, setEvento] =
+    useState<Evento | null>(null)
 
-  const [nome, setNome] = useState('')
-  const [matricula, setMatricula] = useState('')
-  const [setor, setSetor] = useState('')
-  const [empresa, setEmpresa] = useState('')
+  const [nome, setNome] =
+    useState('')
 
-  const [foto, setFoto] = useState<File | null>(null)
+  const [matricula, setMatricula] =
+    useState('')
 
-  const [salvando, setSalvando] = useState(false)
+  const [setor, setSetor] =
+    useState('')
+
+  const [empresa, setEmpresa] =
+    useState('')
+
+  const [foto, setFoto] =
+    useState<File | null>(null)
+
+  const [salvando, setSalvando] =
+    useState(false)
+
+  const [mensagem, setMensagem] =
+    useState('')
 
   useEffect(() => {
     if (!codigo) return
@@ -68,17 +92,21 @@ export default function RegistrarPresenca() {
   }, [codigo])
 
   async function buscarEvento() {
-    console.log('CODIGO:', codigo)
-
-    const { data, error } = await supabase
-      .from('eventos')
-      .select('*')
-      .eq('codigo', String(codigo).trim())
-      .single()
+    const { data, error } =
+      await supabase
+        .from('eventos')
+        .select('*')
+        .eq(
+          'codigo',
+          String(codigo).trim()
+        )
+        .single()
 
     if (error) {
       console.log(error)
+
       alert('Evento não encontrado')
+
       return
     }
 
@@ -93,13 +121,21 @@ export default function RegistrarPresenca() {
       return
     }
 
-    if (!nome || !matricula || !setor || !empresa) {
+    if (
+      !nome ||
+      !matricula ||
+      !setor ||
+      !empresa
+    ) {
       alert('Preencha todos os campos')
       return
     }
 
-    if (evento.exigir_selfie && !foto) {
-      alert('Tire uma selfie')
+    if (
+      evento.exigir_selfie &&
+      !foto
+    ) {
+      alert('Selfie obrigatória')
       return
     }
 
@@ -113,30 +149,45 @@ export default function RegistrarPresenca() {
       `${evento.data}T${evento.hora_fim}`
     )
 
-    if (agora < inicio || agora > fim) {
-      alert('Fora do horário permitido')
+    if (
+      agora < inicio ||
+      agora > fim
+    ) {
+      alert(
+        'Fora do horário permitido'
+      )
+
       return
     }
 
     setSalvando(true)
 
+    setMensagem(
+      'Validando localização...'
+    )
+
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const latitudeUsuario = pos.coords.latitude
-        const longitudeUsuario = pos.coords.longitude
+        const latitudeUsuario =
+          pos.coords.latitude
+
+        const longitudeUsuario =
+          pos.coords.longitude
 
         if (
           evento.latitude &&
           evento.longitude
         ) {
-          const distancia = calcularDistancia(
-            latitudeUsuario,
-            longitudeUsuario,
-            evento.latitude,
-            evento.longitude
-          )
+          const distancia =
+            calcularDistancia(
+              latitudeUsuario,
+              longitudeUsuario,
+              evento.latitude,
+              evento.longitude
+            )
 
-          if (distancia > 0.1) {
+          // 10 metros
+          if (distancia > 0.01) {
             setSalvando(false)
 
             alert(
@@ -147,13 +198,21 @@ export default function RegistrarPresenca() {
           }
         }
 
-        const { data: presencaExistente } =
-          await supabase
-            .from('presencas')
-            .select('id')
-            .eq('evento_id', evento.id)
-            .eq('matricula', matricula)
-            .maybeSingle()
+        setMensagem(
+          'Validando matrícula...'
+        )
+
+        const {
+          data: presencaExistente,
+        } = await supabase
+          .from('presencas')
+          .select('id')
+          .eq('evento_id', evento.id)
+          .eq(
+            'matricula',
+            matricula
+          )
+          .maybeSingle()
 
         if (presencaExistente) {
           setSalvando(false)
@@ -165,59 +224,91 @@ export default function RegistrarPresenca() {
           return
         }
 
-        const nomeArquivo = `${Date.now()}-${foto!.name}`
+        let fotoUrl = ''
 
-        const { error: erroUpload } =
-          await supabase.storage
+        if (foto) {
+          setMensagem(
+            'Enviando selfie...'
+          )
+
+          const nomeArquivo = `${Date.now()}-${foto.name}`
+
+          const {
+            error: erroUpload,
+          } =
+            await supabase.storage
+              .from('selfies')
+              .upload(
+                nomeArquivo,
+                foto
+              )
+
+          if (erroUpload) {
+            console.log(
+              erroUpload
+            )
+
+            setSalvando(false)
+
+            alert(
+              'Erro ao enviar selfie'
+            )
+
+            return
+          }
+
+          const {
+            data: { publicUrl },
+          } = supabase.storage
             .from('selfies')
-            .upload(nomeArquivo, foto!)
+            .getPublicUrl(
+              nomeArquivo
+            )
 
-        if (erroUpload) {
-          console.log(erroUpload)
-
-          setSalvando(false)
-
-          alert('Erro ao enviar selfie')
-
-          return
+          fotoUrl = publicUrl
         }
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage
-          .from('selfies')
-          .getPublicUrl(nomeArquivo)
+        setMensagem(
+          'Registrando presença...'
+        )
 
-        const { error } = await supabase
-          .from('presencas')
-          .insert([
-            {
-              evento_id: evento.id,
-              nome,
-              matricula,
-              setor,
-              empresa,
-              foto_url: publicUrl,
-            },
-          ])
+        const { error } =
+          await supabase
+            .from('presencas')
+            .insert([
+              {
+                evento_id:
+                  evento.id,
+                nome,
+                matricula,
+                setor,
+                empresa,
+                foto_url: fotoUrl,
+              },
+            ])
 
         setSalvando(false)
 
         if (error) {
           console.log(error)
 
-          alert('Erro ao registrar presença')
+          alert(
+            'Erro ao registrar presença'
+          )
 
           return
         }
 
-        alert('Presença registrada com sucesso!')
+        alert(
+          'Presença registrada com sucesso!'
+        )
 
         setNome('')
         setMatricula('')
         setSetor('')
         setEmpresa('')
         setFoto(null)
+        setMensagem('')
       },
       () => {
         setSalvando(false)
@@ -231,112 +322,215 @@ export default function RegistrarPresenca() {
 
   if (!evento) {
     return (
-      <div style={{ padding: 20 }}>
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
         Carregando evento...
       </div>
     )
   }
 
   return (
-    <div
-  style={{
-    minHeight: '100vh',
-    background: '#f4f6f8',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    color: '#111827'
-  }}
->
+    <div className="min-h-screen bg-slate-950 text-white flex justify-center items-center p-5">
       <div
-        style={{
-          background: 'white',
-          padding: 24,
-          borderRadius: 12,
-          width: '100%',
-          maxWidth: 420,
-          boxShadow:
-            '0 4px 20px rgba(0,0,0,0.08)',
-        }}
+        className="
+          w-full
+          max-w-xl
+          bg-slate-900
+          border
+          border-slate-800
+          rounded-[32px]
+          shadow-2xl
+          p-8
+        "
       >
-        <h1>Registrar Presença</h1>
-
-        <div
-          style={{
-            background: '#f9fafb',
-            padding: 12,
-            borderRadius: 8,
-            marginBottom: 20,
-          }}
-        >
-          <h2>{evento.titulo}</h2>
-
-          <p>Tipo: {evento.tipo}</p>
-
-          <p>Data: {evento.data}</p>
-
-          <p>Instrutor: {evento.instrutor}</p>
-
-          <p>
-            Status:{' '}
-            <strong>
-              {evento.status || 'Aberto'}
-            </strong>
-          </p>
-        </div>
-
-        <Input
-          label="Nome completo"
-          value={nome}
-          onChange={(e: any) =>
-            setNome(e.target.value)
-          }
-        />
-
-        <Input
-          label="Matrícula"
-          value={matricula}
-          onChange={(e: any) =>
-            setMatricula(e.target.value)
-          }
-        />
-
-        <Input
-          label="Setor"
-          value={setor}
-          onChange={(e: any) =>
-            setSetor(e.target.value)
-          }
-        />
-
-        <Input
-          label="Empresa"
-          value={empresa}
-          onChange={(e: any) =>
-            setEmpresa(e.target.value)
-          }
-        />
-
-        <div style={{ marginBottom: 16 }}>
-          <label>Selfie</label>
-
-          <input
-            type="file"
-            accept="image/*"
-            capture="user"
-            onChange={(e: any) =>
-              setFoto(e.target.files[0])
-            }
+        {/* LOGO */}
+        <div className="flex justify-center mb-6">
+          <img
+            src="/logo.png"
+            alt="Logo"
+            className="h-20 object-contain"
           />
         </div>
 
-        <Button onClick={registrarPresenca}>
-          {salvando
-            ? 'Salvando...'
-            : 'Confirmar presença'}
-        </Button>
+        {/* HEADER */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold">
+            📲 Check-in
+          </h1>
+
+          <p className="text-slate-400 mt-2">
+            Registro de presença
+          </p>
+        </div>
+
+        {/* EVENTO */}
+        <div className="bg-slate-800 rounded-3xl p-6 space-y-4 mb-8">
+          <div>
+            <h2 className="text-2xl font-bold">
+              {evento.titulo}
+            </h2>
+
+            <p className="text-slate-400">
+              {evento.tipo}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Info
+              titulo="📅 Data"
+              valor={evento.data}
+            />
+
+            <Info
+              titulo="👨‍🏫 Instrutor"
+              valor={evento.instrutor}
+            />
+
+            <Info
+              titulo="🕒 Horário"
+              valor={`${evento.hora_inicio} - ${evento.hora_fim}`}
+            />
+
+            <Info
+              titulo="📸 Selfie"
+              valor={
+                evento.exigir_selfie
+                  ? 'Obrigatória'
+                  : 'Opcional'
+              }
+            />
+          </div>
+        </div>
+
+        {/* FORM */}
+        <div className="space-y-5">
+          <Campo
+            placeholder="Nome completo"
+            value={nome}
+            onChange={(e: any) =>
+              setNome(e.target.value)
+            }
+          />
+
+          <Campo
+            placeholder="Matrícula"
+            value={matricula}
+            onChange={(e: any) =>
+              setMatricula(
+                e.target.value
+              )
+            }
+          />
+
+          <Campo
+            placeholder="Setor"
+            value={setor}
+            onChange={(e: any) =>
+              setSetor(e.target.value)
+            }
+          />
+
+          <Campo
+            placeholder="Empresa"
+            value={empresa}
+            onChange={(e: any) =>
+              setEmpresa(
+                e.target.value
+              )
+            }
+          />
+
+          {/* SELFIE */}
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+            <label className="block mb-3 font-semibold">
+              📸 Selfie
+            </label>
+
+            <input
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={(e: any) =>
+                setFoto(
+                  e.target.files[0]
+                )
+              }
+            />
+
+            {foto && (
+              <p className="text-green-400 mt-3 text-sm">
+                ✅ Foto selecionada
+              </p>
+            )}
+          </div>
+
+          {/* LOADING */}
+          {mensagem && (
+            <div className="bg-blue-500/20 text-blue-300 p-4 rounded-2xl text-center">
+              {mensagem}
+            </div>
+          )}
+
+          {/* BOTÃO */}
+          <button
+            onClick={
+              registrarPresenca
+            }
+            disabled={salvando}
+            className="
+              w-full
+              bg-blue-600
+              hover:bg-blue-700
+              disabled:opacity-50
+              transition-all
+              py-4
+              rounded-2xl
+              text-lg
+              font-bold
+              shadow-2xl
+            "
+          >
+            {salvando
+              ? 'Registrando...'
+              : 'Confirmar presença'}
+          </button>
+        </div>
       </div>
     </div>
+  )
+}
+
+/* INFO */
+function Info({
+  titulo,
+  valor,
+}: any) {
+  return (
+    <div className="bg-slate-900 p-4 rounded-2xl">
+      <p className="text-slate-400 text-sm">
+        {titulo}
+      </p>
+
+      <strong>{valor}</strong>
+    </div>
+  )
+}
+
+/* CAMPO */
+function Campo(props: any) {
+  return (
+    <input
+      {...props}
+      className="
+        w-full
+        bg-slate-800
+        border
+        border-slate-700
+        rounded-2xl
+        p-4
+        outline-none
+        focus:border-blue-500
+        transition-all
+      "
+    />
   )
 }
