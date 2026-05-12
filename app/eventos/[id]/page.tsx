@@ -71,53 +71,75 @@ export default function EventoDetalhe() {
   function exportarCSV() {
     if (!evento) return
 
-    const linhas = [
-      [
-        'Nome',
-        'Matrícula',
-        'Setor',
-        'Empresa',
-        'Data/Hora',
-        'Foto',
-      ],
+    try {
+      const linhas = [
+        [
+          'Nome',
+          'Matrícula',
+          'Setor',
+          'Empresa',
+          'Data/Hora',
+          'Foto',
+        ],
 
-      ...presencas.map((p) => [
-        p.nome,
-        p.matricula,
-        p.setor,
-        p.empresa,
-        new Date(
+        ...presencas.map((p) => [
+          p.nome || '',
+          p.matricula || '',
+          p.setor || '',
+          p.empresa || '',
+
           p.data_hora
-        ).toLocaleString(),
-        p.foto_url || '',
-      ]),
-    ]
+            ? new Date(
+                p.data_hora
+              ).toLocaleString()
+            : '',
 
-    const csv = linhas
-      .map((linha) =>
-        linha
-          .map((campo) => `"${campo}"`)
-          .join(';')
+          p.foto_url || '',
+        ]),
+      ]
+
+      const csv = linhas
+        .map((linha) =>
+          linha
+            .map((campo) =>
+              `"${String(campo).replace(
+                /"/g,
+                '""'
+              )}"`
+            )
+            .join(';')
+        )
+        .join('\n')
+
+      const blob = new Blob([csv], {
+        type: 'text/csv;charset=utf-8;',
+      })
+
+      const url =
+        window.URL.createObjectURL(blob)
+
+      const link =
+        document.createElement('a')
+
+      link.href = url
+
+      link.setAttribute(
+        'download',
+        `presencas-${evento.titulo}.csv`
       )
-      .join('\n')
 
-    const blob = new Blob([csv], {
-      type: 'text/csv;charset=utf-8;',
-    })
+      document.body.appendChild(link)
 
-    const url =
-      URL.createObjectURL(blob)
+      link.click()
 
-    const link =
-      document.createElement('a')
+      link.remove()
 
-    link.href = url
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.log(err)
 
-    link.download = `presencas-${evento.titulo}.csv`
-
-    link.click()
-
-    URL.revokeObjectURL(url)
+      alert('Erro ao exportar CSV')
+    }
   }
 
   function copiarLink() {
