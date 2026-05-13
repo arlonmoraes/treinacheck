@@ -116,29 +116,7 @@ export default function RegistrarPresenca() {
   async function registrarPresenca() {
     if (!evento) return
 
-    if (evento.status === 'Encerrado') {
-      alert('Evento encerrado')
-      return
-    }
-
-    if (
-      !nome ||
-      !matricula ||
-      !setor ||
-      !empresa
-    ) {
-      alert('Preencha todos os campos')
-      return
-    }
-
-    if (
-      evento.exigir_selfie &&
-      !foto
-    ) {
-      alert('Selfie obrigatória')
-      return
-    }
-
+    /* HORÁRIOS */
     const agora = new Date()
 
     const inicio = new Date(
@@ -149,6 +127,31 @@ export default function RegistrarPresenca() {
       `${evento.data}T${evento.hora_fim}`
     )
 
+    /* ENCERRAR AUTOMATICAMENTE */
+    if (
+      agora > fim &&
+      evento.status !== 'Encerrado'
+    ) {
+      await supabase
+        .from('eventos')
+        .update({
+          status: 'Encerrado',
+        })
+        .eq('id', evento.id)
+
+      evento.status = 'Encerrado'
+    }
+
+    /* EVENTO ENCERRADO */
+    if (
+      evento.status === 'Encerrado'
+    ) {
+      alert('Evento encerrado')
+
+      return
+    }
+
+    /* FORA DO HORÁRIO */
     if (
       agora < inicio ||
       agora > fim
@@ -156,6 +159,28 @@ export default function RegistrarPresenca() {
       alert(
         'Fora do horário permitido'
       )
+
+      return
+    }
+
+    /* VALIDAÇÃO */
+    if (
+      !nome ||
+      !matricula ||
+      !setor ||
+      !empresa
+    ) {
+      alert('Preencha todos os campos')
+
+      return
+    }
+
+    /* SELFIE */
+    if (
+      evento.exigir_selfie &&
+      !foto
+    ) {
+      alert('Selfie obrigatória')
 
       return
     }
@@ -174,6 +199,7 @@ export default function RegistrarPresenca() {
         const longitudeUsuario =
           pos.coords.longitude
 
+        /* GPS */
         if (
           evento.latitude &&
           evento.longitude
@@ -202,6 +228,7 @@ export default function RegistrarPresenca() {
           'Validando matrícula...'
         )
 
+        /* DUPLICIDADE */
         const {
           data: presencaExistente,
         } = await supabase
@@ -226,6 +253,7 @@ export default function RegistrarPresenca() {
 
         let fotoUrl = ''
 
+        /* UPLOAD SELFIE */
         if (foto) {
           setMensagem(
             'Enviando selfie...'
@@ -272,6 +300,7 @@ export default function RegistrarPresenca() {
           'Registrando presença...'
         )
 
+        /* REGISTRAR */
         const { error } =
           await supabase
             .from('presencas')
@@ -303,6 +332,7 @@ export default function RegistrarPresenca() {
           'Presença registrada com sucesso!'
         )
 
+        /* RESET */
         setNome('')
         setMatricula('')
         setSetor('')

@@ -85,6 +85,9 @@ export default function NovoEvento() {
 
           // 🔥 NOVO
           exigir_selfie: exigirSelfie,
+
+
+	  status: 'Aberto',
         },
       ])
 
