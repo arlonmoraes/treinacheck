@@ -30,44 +30,12 @@ export default function Dashboard() {
   const [presencasHoje, setPresencasHoje] =
     useState(0)
 
-  /* DADOS GRÁFICOS */
-  const dadosEventos = [
-    {
-      nome: 'DDS',
-      total: 12,
-    },
-    {
-      nome: 'DDQ',
-      total: 7,
-    },
-    {
-      nome: 'Treinamento',
-      total: 20,
-    },
-  ]
+  /* DADOS REAIS */
+  const [dadosEventos, setDadosEventos] =
+    useState<any[]>([])
 
-  const dadosPresencas = [
-    {
-      dia: 'Seg',
-      total: 12,
-    },
-    {
-      dia: 'Ter',
-      total: 18,
-    },
-    {
-      dia: 'Qua',
-      total: 9,
-    },
-    {
-      dia: 'Qui',
-      total: 22,
-    },
-    {
-      dia: 'Sex',
-      total: 15,
-    },
-  ]
+  const [dadosPresencas, setDadosPresencas] =
+    useState<any[]>([])
 
   useEffect(() => {
     carregarDados()
@@ -87,6 +55,39 @@ export default function Dashboard() {
       ) || []
 
     setEventosAbertos(abertos.length)
+
+    /* TIPOS DE EVENTOS */
+
+    const dds =
+      eventos?.filter(
+        (e) => e.tipo === 'DDS'
+      ).length || 0
+
+    const ddq =
+      eventos?.filter(
+        (e) => e.tipo === 'DDQ'
+      ).length || 0
+
+    const treinamentos =
+      eventos?.filter(
+        (e) =>
+          e.tipo === 'Treinamento'
+      ).length || 0
+
+    setDadosEventos([
+      {
+        nome: 'DDS',
+        total: dds,
+      },
+      {
+        nome: 'DDQ',
+        total: ddq,
+      },
+      {
+        nome: 'Treinamento',
+        total: treinamentos,
+      },
+    ])
 
     /* PRESENÇAS */
     const { data: presencas } =
@@ -111,6 +112,43 @@ export default function Dashboard() {
     setPresencasHoje(
       hojeFiltrado.length
     )
+
+    /* GRÁFICO SEMANAL */
+
+    const diasSemana = [
+      'Dom',
+      'Seg',
+      'Ter',
+      'Qua',
+      'Qui',
+      'Sex',
+      'Sab',
+    ]
+
+    const mapa: any = {}
+
+    diasSemana.forEach((dia) => {
+      mapa[dia] = 0
+    })
+
+    presencas?.forEach((p) => {
+      const data = new Date(
+        p.data_hora
+      )
+
+      const dia =
+        diasSemana[data.getDay()]
+
+      mapa[dia]++
+    })
+
+    const grafico =
+      diasSemana.map((dia) => ({
+        dia,
+        total: mapa[dia],
+      }))
+
+    setDadosPresencas(grafico)
   }
 
   return (
