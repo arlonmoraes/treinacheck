@@ -41,8 +41,34 @@ export default function Dashboard() {
   const [ranking, setRanking] =
     useState<any[]>([])
 
+  /* AO VIVO */
+  const [ultimasPresencas, setUltimasPresencas] =
+    useState<any[]>([])
+
   useEffect(() => {
     carregarDados()
+
+    /* REALTIME */
+    const canal = supabase
+      .channel('presencas-tempo-real')
+
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'presencas',
+        },
+        () => {
+          carregarDados()
+        }
+      )
+
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(canal)
+    }
   }, [])
 
   async function carregarDados() {
@@ -60,7 +86,7 @@ export default function Dashboard() {
 
     setEventosAbertos(abertos.length)
 
-    /* TIPOS DE EVENTOS */
+    /* TIPOS EVENTOS */
 
     const dds =
       eventos?.filter(
@@ -98,9 +124,17 @@ export default function Dashboard() {
       await supabase
         .from('presencas')
         .select('*')
+        .order('data_hora', {
+          ascending: false,
+        })
 
     setTotalPresencas(
       presencas?.length || 0
+    )
+
+    /* ÚLTIMAS PRESENÇAS */
+    setUltimasPresencas(
+      presencas?.slice(0, 8) || []
     )
 
     /* PRESENÇAS HOJE */
@@ -187,14 +221,22 @@ export default function Dashboard() {
       <LayoutAdmin>
         <div className="space-y-8">
           {/* TOPO */}
-          <div>
-            <h1 className="text-4xl font-bold">
-              📊 Dashboard
-            </h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold">
+                📊 Dashboard
+              </h1>
 
-            <p className="text-slate-400 mt-2">
-              Visão geral do sistema
-            </p>
+              <p className="text-slate-400 mt-2">
+                Painel em tempo real
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 bg-green-500/20 text-green-400 px-5 py-3 rounded-2xl">
+              <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+
+              AO VIVO
+            </div>
           </div>
 
           {/* CARDS */}
@@ -226,6 +268,95 @@ export default function Dashboard() {
               cor="from-orange-500 to-orange-700"
               icone="🔥"
             />
+          </div>
+
+          {/* AO VIVO */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold">
+                ⚡ Entradas Ao Vivo
+              </h2>
+
+              <div className="bg-red-500/20 text-red-400 px-4 py-2 rounded-2xl">
+                TEMPO REAL
+              </div>
+            </div>
+
+            {ultimasPresencas.length === 0 && (
+              <div className="text-slate-400">
+                Nenhuma presença registrada
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {ultimasPresencas.map(
+                (p, index) => (
+                  <div
+                    key={index}
+                    className="
+                      bg-slate-800
+                      rounded-2xl
+                      p-5
+                      flex
+                      items-center
+                      justify-between
+                      animate-pulse
+                    "
+                  >
+                    <div className="flex items-center gap-4">
+                      {p.foto_url ? (
+                        <img
+                          src={p.foto_url}
+                          alt="selfie"
+                          className="
+                            w-14
+                            h-14
+                            rounded-full
+                            object-cover
+                          "
+                        />
+                      ) : (
+                        <div
+                          className="
+                            w-14
+                            h-14
+                            rounded-full
+                            bg-slate-700
+                            flex
+                            items-center
+                            justify-center
+                          "
+                        >
+                          👤
+                        </div>
+                      )}
+
+                      <div>
+                        <h3 className="font-bold text-lg">
+                          {p.nome}
+                        </h3>
+
+                        <p className="text-slate-400 text-sm">
+                          {p.empresa}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-green-400 font-bold">
+                        CHECK-IN
+                      </p>
+
+                      <p className="text-slate-400 text-sm">
+                        {new Date(
+                          p.data_hora
+                        ).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
           </div>
 
           {/* GRÁFICOS */}
@@ -381,65 +512,6 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-
-          {/* PAINEL */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-
-            {/* CARD 1 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-              <h2 className="text-2xl font-bold mb-4">
-                🚀 Sistema Ativo
-              </h2>
-
-              <p className="text-slate-400 leading-7">
-                O TreinaCheck está
-                operando normalmente.
-
-                <br />
-                <br />
-
-                Sistema protegido com:
-              </p>
-
-              <div className="mt-6 space-y-3">
-                <Item texto="QR Code seguro" />
-                <Item texto="Bloqueio por GPS" />
-                <Item texto="Selfie obrigatória" />
-                <Item texto="Controle de horário" />
-                <Item texto="Exportação CSV" />
-                <Item texto="Exportação PDF" />
-              </div>
-            </div>
-
-            {/* CARD 2 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-              <h2 className="text-2xl font-bold mb-4">
-                📈 Resumo
-              </h2>
-
-              <div className="space-y-5">
-                <ResumoLinha
-                  titulo="Eventos cadastrados"
-                  valor={totalEventos}
-                />
-
-                <ResumoLinha
-                  titulo="Participantes"
-                  valor={totalPresencas}
-                />
-
-                <ResumoLinha
-                  titulo="Eventos ativos"
-                  valor={eventosAbertos}
-                />
-
-                <ResumoLinha
-                  titulo="Check-ins hoje"
-                  valor={presencasHoje}
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </LayoutAdmin>
     </Protegido>
@@ -480,35 +552,6 @@ function Card({
           {icone}
         </div>
       </div>
-    </div>
-  )
-}
-
-/* RESUMO */
-function ResumoLinha({
-  titulo,
-  valor,
-}: any) {
-  return (
-    <div className="flex items-center justify-between bg-slate-800 p-4 rounded-2xl">
-      <span className="text-slate-300">
-        {titulo}
-      </span>
-
-      <strong className="text-2xl">
-        {valor}
-      </strong>
-    </div>
-  )
-}
-
-/* ITEM */
-function Item({
-  texto,
-}: any) {
-  return (
-    <div className="bg-slate-800 p-4 rounded-2xl">
-      ✅ {texto}
     </div>
   )
 }
