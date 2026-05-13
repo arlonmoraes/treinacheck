@@ -7,7 +7,6 @@ import { supabase } from '@/app/lib/supabase'
 import { useParams } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 
 type Evento = {
   id: string
@@ -46,8 +45,11 @@ export default function EventoDetalhe() {
 
       if (error) {
         console.log(error)
+
         alert('Erro ao buscar evento')
+
         setLoading(false)
+
         return
       }
 
@@ -143,69 +145,79 @@ export default function EventoDetalhe() {
   }
 
   /* PDF */
-  function exportarPDF() {
+  async function exportarPDF() {
     if (!evento) return
 
-    const doc = new jsPDF()
+    try {
+      const autoTable =
+        (await import('jspdf-autotable'))
+          .default
 
-    doc.setFontSize(20)
+      const doc = new jsPDF()
 
-    doc.text(
-      `Relatório - ${evento.titulo}`,
-      14,
-      20
-    )
+      doc.setFontSize(20)
 
-    doc.setFontSize(11)
+      doc.text(
+        `Relatório - ${evento.titulo}`,
+        14,
+        20
+      )
 
-    doc.text(
-      `Tipo: ${evento.tipo}`,
-      14,
-      32
-    )
+      doc.setFontSize(11)
 
-    doc.text(
-      `Instrutor: ${evento.instrutor}`,
-      14,
-      40
-    )
+      doc.text(
+        `Tipo: ${evento.tipo}`,
+        14,
+        32
+      )
 
-    doc.text(
-      `Data: ${evento.data}`,
-      14,
-      48
-    )
+      doc.text(
+        `Instrutor: ${evento.instrutor}`,
+        14,
+        40
+      )
 
-    ;(doc as any).autoTable({
-  startY: 60,
+      doc.text(
+        `Data: ${evento.data}`,
+        14,
+        48
+      )
 
-  head: [
-    [
-      'Nome',
-      'Matrícula',
-      'Setor',
-      'Empresa',
-      'Hora',
-    ],
-  ],
+      autoTable(doc, {
+        startY: 60,
 
-  body: presencas.map((p) => [
-    p.nome || '',
-    p.matricula || '',
-    p.setor || '',
-    p.empresa || '',
+        head: [
+          [
+            'Nome',
+            'Matrícula',
+            'Setor',
+            'Empresa',
+            'Hora',
+          ],
+        ],
 
-    p.data_hora
-      ? new Date(
+        body: presencas.map((p) => [
+          p.nome || '',
+          p.matricula || '',
+          p.setor || '',
+          p.empresa || '',
+
           p.data_hora
-        ).toLocaleTimeString()
-      : '',
-  ]),
-})
+            ? new Date(
+                p.data_hora
+              ).toLocaleTimeString()
+            : '',
+        ]),
+      })
 
-    doc.save(
-      `relatorio-${evento.titulo}.pdf`
-    )
+      doc.save(
+        `relatorio-${evento.titulo}.pdf`
+      )
+    } catch (err) {
+      console.log(err)
+
+      alert('Erro ao gerar PDF')
+    }
   }
 
   function copiarLink() {
@@ -242,7 +254,7 @@ export default function EventoDetalhe() {
         <div className="space-y-8">
           {/* HEADER */}
           <div>
-            <h1 className="text-4xl font-bold">
+            <h1 className="text-4xl font-bold text-white">
               🎯 {evento.titulo}
             </h1>
 
@@ -255,7 +267,7 @@ export default function EventoDetalhe() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* INFOS */}
             <div className="xl:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-              <h2 className="text-2xl font-bold mb-6">
+              <h2 className="text-2xl font-bold mb-6 text-white">
                 📋 Informações
               </h2>
 
@@ -301,7 +313,7 @@ export default function EventoDetalhe() {
 
             {/* QR CODE */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center">
-              <h2 className="text-2xl font-bold mb-6">
+              <h2 className="text-2xl font-bold mb-6 text-white">
                 📲 QR Code
               </h2>
 
@@ -324,6 +336,7 @@ export default function EventoDetalhe() {
                   rounded-2xl
                   font-semibold
                   w-full
+                  text-white
                 "
               >
                 Copiar Link
@@ -341,6 +354,7 @@ export default function EventoDetalhe() {
                   rounded-2xl
                   font-semibold
                   w-full
+                  text-white
                 "
               >
                 Exportar CSV
@@ -358,6 +372,7 @@ export default function EventoDetalhe() {
                   rounded-2xl
                   font-semibold
                   w-full
+                  text-white
                 "
               >
                 Exportar PDF
@@ -368,11 +383,11 @@ export default function EventoDetalhe() {
           {/* LISTA */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-3xl font-bold">
+              <h2 className="text-3xl font-bold text-white">
                 👥 Lista de Presença
               </h2>
 
-              <div className="bg-slate-800 px-4 py-2 rounded-2xl">
+              <div className="bg-slate-800 px-4 py-2 rounded-2xl text-white">
                 {presencas.length} participantes
               </div>
             </div>
@@ -440,7 +455,7 @@ export default function EventoDetalhe() {
 
                   {/* INFOS */}
                   <div className="flex-1">
-                    <h3 className="text-2xl font-bold">
+                    <h3 className="text-2xl font-bold text-white">
                       {p.nome}
                     </h3>
 
@@ -489,7 +504,7 @@ function Info({
         {titulo}
       </p>
 
-      <strong className="text-lg">
+      <strong className="text-lg text-white">
         {valor}
       </strong>
     </div>
@@ -507,7 +522,9 @@ function MiniInfo({
         {titulo}
       </p>
 
-      <strong>{valor}</strong>
+      <strong className="text-white">
+        {valor}
+      </strong>
     </div>
   )
 }
