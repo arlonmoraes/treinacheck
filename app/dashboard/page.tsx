@@ -30,11 +30,15 @@ export default function Dashboard() {
   const [presencasHoje, setPresencasHoje] =
     useState(0)
 
-  /* DADOS REAIS */
+  /* DADOS GRÁFICOS */
   const [dadosEventos, setDadosEventos] =
     useState<any[]>([])
 
   const [dadosPresencas, setDadosPresencas] =
+    useState<any[]>([])
+
+  /* RANKING */
+  const [ranking, setRanking] =
     useState<any[]>([])
 
   useEffect(() => {
@@ -149,6 +153,33 @@ export default function Dashboard() {
       }))
 
     setDadosPresencas(grafico)
+
+    /* RANKING */
+
+    const mapaRanking: any = {}
+
+    presencas?.forEach((p) => {
+      if (!mapaRanking[p.nome]) {
+        mapaRanking[p.nome] = 0
+      }
+
+      mapaRanking[p.nome]++
+    })
+
+    const rankingFinal = Object.entries(
+      mapaRanking
+    )
+      .map(([nome, total]) => ({
+        nome,
+        total,
+      }))
+      .sort(
+        (a: any, b: any) =>
+          b.total - a.total
+      )
+      .slice(0, 10)
+
+    setRanking(rankingFinal)
   }
 
   return (
@@ -278,6 +309,79 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* RANKING */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold">
+                🏆 Ranking de Participantes
+              </h2>
+
+              <div className="bg-yellow-500/20 text-yellow-400 px-4 py-2 rounded-2xl">
+                TOP 10
+              </div>
+            </div>
+
+            {ranking.length === 0 && (
+              <div className="text-slate-400">
+                Nenhuma presença registrada
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {ranking.map((p, index) => (
+                <div
+                  key={index}
+                  className="
+                    bg-slate-800
+                    rounded-2xl
+                    p-5
+                    flex
+                    items-center
+                    justify-between
+                  "
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="
+                        w-12
+                        h-12
+                        rounded-full
+                        bg-yellow-500
+                        text-black
+                        font-bold
+                        flex
+                        items-center
+                        justify-center
+                      "
+                    >
+                      #{index + 1}
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-bold">
+                        {p.nome}
+                      </h3>
+
+                      <p className="text-slate-400 text-sm">
+                        Participante
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <h2 className="text-3xl font-bold">
+                      {p.total}
+                    </h2>
+
+                    <p className="text-slate-400 text-sm">
+                      presenças
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* PAINEL */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
@@ -299,15 +403,10 @@ export default function Dashboard() {
 
               <div className="mt-6 space-y-3">
                 <Item texto="QR Code seguro" />
-
                 <Item texto="Bloqueio por GPS" />
-
                 <Item texto="Selfie obrigatória" />
-
                 <Item texto="Controle de horário" />
-
                 <Item texto="Exportação CSV" />
-
                 <Item texto="Exportação PDF" />
               </div>
             </div>
