@@ -49,7 +49,7 @@ export default function Login() {
         provider: 'azure',
         options: {
           redirectTo:
-            'https://minhalista.bba.ind.br',
+            'https://treinacheck.vercel.app',
         },
       })
 
