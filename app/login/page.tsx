@@ -49,7 +49,7 @@ export default function Login() {
         provider: 'azure',
         options: {
           redirectTo:
-            'https://treinacheck.vercel.app',
+            'https://minhalista.bba.ind.br',
         },
       })
 
@@ -103,7 +103,7 @@ export default function Login() {
               marginBottom: 10,
             }}
           >
-            🚀 TreinaCheck
+            📝 Minha Lista 📝
           </h1>
 
           <p

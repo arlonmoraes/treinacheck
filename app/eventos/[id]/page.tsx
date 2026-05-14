@@ -175,7 +175,7 @@ export default function EventoDetalhe() {
     return <div className="p-10 text-white">Evento não encontrado</div>
   }
 
-  const linkPresenca = `https://treinacheck.vercel.app/presenca/${evento.codigo}`
+  const linkPresenca = `https://minhalista.bba.ind.br/presenca/${evento.codigo}`
 
   return (
     <Protegido>

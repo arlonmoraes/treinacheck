@@ -8,7 +8,7 @@ export default function Home() {
     <Protegido>
       <LayoutAdmin>
         <h1>Dashboard</h1>
-        <p>Bem-vindo ao TreinaCheck.</p>
+        <p>Bem-vindo ao Minha Lista.</p>
       </LayoutAdmin>
     </Protegido>
   )
