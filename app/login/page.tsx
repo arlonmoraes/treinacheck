@@ -211,7 +211,7 @@ export default function Login() {
             fontSize: 13,
           }}
         >
-          Azure Active Directory integrado
+          
         </div>
       </div>
     </div>
