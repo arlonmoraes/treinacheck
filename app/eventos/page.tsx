@@ -27,6 +27,20 @@ export default function Eventos() {
   const [busca, setBusca] =
     useState('')
 
+  /* FILTROS */
+  const [filtros, setFiltros] =
+    useState<string[]>([])
+
+  /* TIPOS */
+  const tiposEvento = [
+    'DDS',
+    'DDQ',
+    'Treinamento',
+    'Reunião',
+    'Integração',
+    'Gestão de mudança',
+  ]
+
   useEffect(() => {
     buscarEventos()
   }, [])
@@ -51,6 +65,19 @@ export default function Eventos() {
     setEventos(data || [])
   }
 
+  /* TOGGLE FILTRO */
+  function toggleFiltro(tipo: string) {
+    setFiltros((atual) => {
+      if (atual.includes(tipo)) {
+        return atual.filter(
+          (item) => item !== tipo
+        )
+      }
+
+      return [...atual, tipo]
+    })
+  }
+
   async function excluirEvento(
     id: string
   ) {
@@ -60,7 +87,7 @@ export default function Eventos() {
 
     if (!confirmar) return
 
-    // REMOVE PRESENÇAS
+    /* REMOVE PRESENÇAS */
     const {
       error: erroPresencas,
     } = await supabase
@@ -78,7 +105,7 @@ export default function Eventos() {
       return
     }
 
-    // REMOVE EVENTO
+    /* REMOVE EVENTO */
     const { error } =
       await supabase
         .from('eventos')
@@ -100,13 +127,13 @@ export default function Eventos() {
     buscarEventos()
   }
 
-  // FILTRO
+  /* FILTRO */
   const eventosFiltrados =
     eventos.filter((e) => {
       const texto =
         busca.toLowerCase()
 
-      return (
+      const passouBusca =
         e.titulo
           .toLowerCase()
           .includes(texto) ||
@@ -121,6 +148,14 @@ export default function Eventos() {
         )
           .toLowerCase()
           .includes(texto)
+
+      const passouFiltro =
+        filtros.length === 0 ||
+        filtros.includes(e.tipo)
+
+      return (
+        passouBusca &&
+        passouFiltro
       )
     })
 
@@ -180,6 +215,38 @@ export default function Eventos() {
                 transition-all
               "
             />
+          </div>
+
+          {/* FILTROS */}
+          <div className="flex flex-wrap gap-3">
+            {tiposEvento.map((tipo) => {
+              const ativo =
+                filtros.includes(tipo)
+
+              return (
+                <button
+                  key={tipo}
+                  onClick={() =>
+                    toggleFiltro(tipo)
+                  }
+                  className={`
+                    px-4
+                    py-2
+                    rounded-2xl
+                    font-semibold
+                    transition-all
+
+                    ${
+                      ativo
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }
+                  `}
+                >
+                  {tipo}
+                </button>
+              )
+            })}
           </div>
 
           {/* GRID */}
