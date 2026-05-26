@@ -67,17 +67,16 @@ export default function RegistrarPresenca() {
   const [nome, setNome] =
     useState('')
 
-  const [matricula, setMatricula] =
-    useState('')
-
   const [setor, setSetor] =
     useState('')
 
   const [empresa, setEmpresa] =
-    useState('BBA')
-
-  const [empresaOutra, setEmpresaOutra] =
     useState('')
+
+  const [
+    empresaOutra,
+    setEmpresaOutra,
+  ] = useState('')
 
   const [foto, setFoto] =
     useState<File | null>(null)
@@ -126,20 +125,18 @@ export default function RegistrarPresenca() {
 
     if (
       !nome ||
-      !matricula ||
-      !setor
+      !setor ||
+      !empresa
     ) {
       alert('Preencha todos os campos')
       return
     }
 
     if (
-      empresa === 'Terceirizada' &&
+      empresa === 'Outros' &&
       !empresaOutra
     ) {
-      alert(
-        'Informe o nome da empresa'
-      )
+      alert('Digite a empresa')
       return
     }
 
@@ -198,41 +195,16 @@ export default function RegistrarPresenca() {
               evento.longitude
             )
 
+          // 10 metros
           if (distancia > 0.01) {
             setSalvando(false)
 
             alert(
-              'Você não está no local do treinamento'
+              'Você não está no local do evento'
             )
 
             return
           }
-        }
-
-        setMensagem(
-          'Validando matrícula...'
-        )
-
-        const {
-          data: presencaExistente,
-        } = await supabase
-          .from('presencas')
-          .select('id')
-          .eq('evento_id', evento.id)
-          .eq(
-            'matricula',
-            matricula
-          )
-          .maybeSingle()
-
-        if (presencaExistente) {
-          setSalvando(false)
-
-          alert(
-            'Essa matrícula já registrou presença'
-          )
-
-          return
         }
 
         let fotoUrl = ''
@@ -283,11 +255,6 @@ export default function RegistrarPresenca() {
           'Registrando presença...'
         )
 
-        const empresaFinal =
-          empresa === 'Terceirizada'
-            ? empresaOutra
-            : empresa
-
         const { error } =
           await supabase
             .from('presencas')
@@ -296,10 +263,14 @@ export default function RegistrarPresenca() {
                 evento_id:
                   evento.id,
                 nome,
-                matricula,
                 setor,
+
                 empresa:
-                  empresaFinal,
+                  empresa ===
+                  'Outros'
+                    ? empresaOutra
+                    : empresa,
+
                 foto_url: fotoUrl,
               },
             ])
@@ -321,9 +292,8 @@ export default function RegistrarPresenca() {
         )
 
         setNome('')
-        setMatricula('')
         setSetor('')
-        setEmpresa('BBA')
+        setEmpresa('')
         setEmpresaOutra('')
         setFoto(null)
         setMensagem('')
@@ -399,7 +369,7 @@ export default function RegistrarPresenca() {
             />
 
             <Info
-              titulo="👨‍🏫 Instrutor"
+              titulo="👨‍🏫 Responsável"
               valor={evento.instrutor}
             />
 
@@ -430,16 +400,6 @@ export default function RegistrarPresenca() {
           />
 
           <Campo
-            placeholder="Matrícula"
-            value={matricula}
-            onChange={(e: any) =>
-              setMatricula(
-                e.target.value
-              )
-            }
-          />
-
-          <Campo
             placeholder="Setor"
             value={setor}
             onChange={(e: any) =>
@@ -448,65 +408,45 @@ export default function RegistrarPresenca() {
           />
 
           {/* EMPRESA */}
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5">
-            <label className="block mb-3 font-semibold">
-              🏢 Empresa
-            </label>
+          <select
+            value={empresa}
+            onChange={(e) =>
+              setEmpresa(
+                e.target.value
+              )
+            }
+            className="
+              w-full
+              bg-slate-800
+              border
+              border-slate-700
+              rounded-2xl
+              p-4
+            "
+          >
+            <option value="">
+              Selecione a empresa
+            </option>
 
-            <select
-              value={empresa}
-              onChange={(e) =>
-                setEmpresa(
+            <option>BBA</option>
+
+            <option>SUMA</option>
+
+            <option>Outros</option>
+          </select>
+
+          {/* OUTROS */}
+          {empresa === 'Outros' && (
+            <Campo
+              placeholder="Digite a empresa"
+              value={empresaOutra}
+              onChange={(e: any) =>
+                setEmpresaOutra(
                   e.target.value
                 )
               }
-              className="
-                w-full
-                bg-slate-900
-                border
-                border-slate-700
-                rounded-2xl
-                p-4
-                outline-none
-              "
-            >
-              <option value="BBA">
-                BBA
-              </option>
-
-              <option value="SUMA">
-                SUMA
-              </option>
-
-              <option value="Terceirizada">
-                Terceirizada
-              </option>
-            </select>
-
-            {empresa ===
-              'Terceirizada' && (
-              <input
-                type="text"
-                placeholder="Digite o nome da empresa"
-                value={empresaOutra}
-                onChange={(e) =>
-                  setEmpresaOutra(
-                    e.target.value
-                  )
-                }
-                className="
-                  w-full
-                  mt-4
-                  bg-slate-900
-                  border
-                  border-slate-700
-                  rounded-2xl
-                  p-4
-                  outline-none
-                "
-              />
-            )}
-          </div>
+            />
+          )}
 
           {/* SELFIE */}
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5">

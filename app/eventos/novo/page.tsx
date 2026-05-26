@@ -2,52 +2,51 @@
 
 import LayoutAdmin from '@/app/components/LayoutAdmin'
 import Protegido from '@/app/components/Protegido'
-import Input from '@/app/components/Input'
-import Button from '@/app/components/Button'
 import { useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
-import { v4 as uuidv4 } from 'uuid'
+import { useRouter } from 'next/navigation'
 
 export default function NovoEvento() {
-  const [titulo, setTitulo] = useState('')
-  const [tipo, setTipo] = useState('DDS')
-  const [data, setData] = useState('')
-  const [instrutor, setInstrutor] = useState('')
-  const [horaInicio, setHoraInicio] = useState('')
-  const [horaFim, setHoraFim] = useState('')
-  const [latitude, setLatitude] = useState('')
-  const [longitude, setLongitude] = useState('')
-  const [salvando, setSalvando] = useState(false)
+  const router = useRouter()
 
-  // 🔥 NOVO
-  const [exigirSelfie, setExigirSelfie] = useState(false)
+  const [titulo, setTitulo] =
+    useState('')
 
-  const pegarLocalizacao = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocalização não suportada')
-      return
-    }
+  const [tipo, setTipo] =
+    useState('DDS')
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLatitude(pos.coords.latitude.toString())
-        setLongitude(pos.coords.longitude.toString())
+  const [data, setData] =
+    useState('')
 
-        alert('Localização capturada com sucesso!')
-      },
-      () => {
-        alert('Erro ao capturar localização')
-      }
-    )
-  }
+  const [
+    horaInicio,
+    setHoraInicio,
+  ] = useState('')
 
-  const criarEvento = async () => {
+  const [horaFim, setHoraFim] =
+    useState('')
+
+  const [
+    instrutor,
+    setInstrutor,
+  ] = useState('')
+
+  const [
+    exigirSelfie,
+    setExigirSelfie,
+  ] = useState(true)
+
+  const [salvando, setSalvando] =
+    useState(false)
+
+  async function criarEvento() {
     if (
       !titulo ||
+      !tipo ||
       !data ||
-      !instrutor ||
       !horaInicio ||
-      !horaFim
+      !horaFim ||
+      !instrutor
     ) {
       alert('Preencha todos os campos')
       return
@@ -55,201 +54,187 @@ export default function NovoEvento() {
 
     setSalvando(true)
 
-    const codigo = uuidv4()
+    // BUSCA EVENTOS DO MESMO TIPO
+    const { data: eventosTipo } =
+      await supabase
+        .from('eventos')
+        .select('id')
+        .eq('tipo', tipo)
 
-    const { data: userData } =
-      await supabase.auth.getUser()
+    const numero =
+      (eventosTipo?.length || 0) + 1
 
-    const { error } = await supabase
-      .from('eventos')
-      .insert([
-        {
-          titulo,
-          tipo,
-          data,
-          instrutor,
-          codigo,
+    // CODIGO SEQUENCIAL
+    const codigoEvento = `${numero} - ${tipo}`
 
-          criado_por: userData.user?.id,
+    // QR CODE RANDOM
+    const codigo = crypto.randomUUID()
 
-          hora_inicio: horaInicio,
-          hora_fim: horaFim,
+    const { error } =
+      await supabase
+        .from('eventos')
+        .insert([
+          {
+            titulo,
+            tipo,
+            codigo_evento:
+              codigoEvento,
 
-          latitude: latitude
-            ? Number(latitude)
-            : null,
+            data,
 
-          longitude: longitude
-            ? Number(longitude)
-            : null,
+            hora_inicio:
+              horaInicio,
 
-          // 🔥 NOVO
-          exigir_selfie: exigirSelfie,
+            hora_fim: horaFim,
 
+            instrutor,
 
-	  status: 'Aberto',
-        },
-      ])
+            codigo,
+
+            status: 'Aberto',
+
+            exigir_selfie:
+              exigirSelfie,
+          },
+        ])
 
     setSalvando(false)
 
     if (error) {
       console.log(error)
+
       alert('Erro ao criar evento')
+
       return
     }
 
     alert('Evento criado com sucesso!')
 
-    // RESET
-    setTitulo('')
-    setData('')
-    setInstrutor('')
-    setHoraInicio('')
-    setHoraFim('')
-    setLatitude('')
-    setLongitude('')
-    setExigirSelfie(false)
+    router.push('/eventos')
   }
 
   return (
     <Protegido>
       <LayoutAdmin>
-        <h1>Criar Evento</h1>
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-white">
+              ➕ Novo Evento
+            </h1>
 
-        <div style={{ maxWidth: 400 }}>
-          <Input
-            label="Título"
-            value={titulo}
-            onChange={(e: any) =>
-              setTitulo(e.target.value)
-            }
-          />
-
-          <div style={{ marginBottom: 12 }}>
-            <label>Tipo</label>
-
-            <select
-  value={tipo}
-  onChange={(e) =>
-    setTipo(e.target.value)
-  }
-  style={{
-    width: '100%',
-    padding: 10,
-    borderRadius: 8,
-    border: '1px solid #334155',
-    background: 'white',
-    color: '#111827',
-    fontSize: 16,
-    outline: 'none',
-  }}
->
-  <option
-    value="DDS"
-    style={{ color: '#111827' }}
-  >
-    DDS
-  </option>
-
-  <option
-    value="DDQ"
-    style={{ color: '#111827' }}
-  >
-    DDQ
-  </option>
-
-  <option
-    value="Treinamento"
-    style={{ color: '#111827' }}
-  >
-    Treinamento
-  </option>
-</select>
+            <p className="text-slate-400 mt-2">
+              Cadastro de evento
+            </p>
           </div>
 
-          <Input
-            label="Data"
-            type="date"
-            value={data}
-            onChange={(e: any) =>
-              setData(e.target.value)
-            }
-          />
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-5">
+            {/* TITULO */}
+            <Campo
+              titulo="Título"
+              value={titulo}
+              onChange={(e: any) =>
+                setTitulo(e.target.value)
+              }
+            />
 
-          <Input
-            label="Hora início"
-            type="time"
-            value={horaInicio}
-            onChange={(e: any) =>
-              setHoraInicio(e.target.value)
-            }
-          />
+            {/* TIPO */}
+            <div>
+              <label className="block mb-2 text-sm text-slate-300">
+                Tipo do Evento
+              </label>
 
-          <Input
-            label="Hora fim"
-            type="time"
-            value={horaFim}
-            onChange={(e: any) =>
-              setHoraFim(e.target.value)
-            }
-          />
+              <select
+                value={tipo}
+                onChange={(e) =>
+                  setTipo(
+                    e.target.value
+                  )
+                }
+                className="
+                  w-full
+                  bg-slate-800
+                  border
+                  border-slate-700
+                  rounded-2xl
+                  p-4
+                  text-white
+                "
+              >
+                <option>DDS</option>
 
-          <Input
-            label="Instrutor"
-            value={instrutor}
-            onChange={(e: any) =>
-              setInstrutor(e.target.value)
-            }
-          />
+                <option>DDQ</option>
 
-          {/* 🔥 GPS */}
-          <button
-            style={{
-              width: '100%',
-              padding: 10,
-              background: '#16a34a',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              marginTop: 10,
-              cursor: 'pointer',
-            }}
-            onClick={pegarLocalizacao}
-          >
-            📍 Usar minha localização
-          </button>
+                <option>
+                  Treinamento
+                </option>
 
-          {/* 🔍 COORDENADAS */}
-          {latitude && longitude && (
-            <p
-              style={{
-                fontSize: 12,
-                color: '#555',
-                marginTop: 8,
-              }}
-            >
-              Lat: {latitude}
+                <option>
+                  Reunião
+                </option>
 
-              <br />
+                <option>
+                  Integração
+                </option>
 
-              Lng: {longitude}
-            </p>
-          )}
+                <option>
+                  Gestão de Mudança
+                </option>
+              </select>
+            </div>
 
-          {/* 🔥 SELFIE */}
-          <div style={{ marginTop: 16 }}>
-            <label
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                cursor: 'pointer',
-              }}
-            >
+            {/* DATA */}
+            <Campo
+              titulo="Data"
+              type="date"
+              value={data}
+              onChange={(e: any) =>
+                setData(e.target.value)
+              }
+            />
+
+            {/* HORARIOS */}
+            <div className="grid grid-cols-2 gap-4">
+              <Campo
+                titulo="Hora início"
+                type="time"
+                value={horaInicio}
+                onChange={(e: any) =>
+                  setHoraInicio(
+                    e.target.value
+                  )
+                }
+              />
+
+              <Campo
+                titulo="Hora fim"
+                type="time"
+                value={horaFim}
+                onChange={(e: any) =>
+                  setHoraFim(
+                    e.target.value
+                  )
+                }
+              />
+            </div>
+
+            {/* RESPONSAVEL */}
+            <Campo
+              titulo="Responsável"
+              value={instrutor}
+              onChange={(e: any) =>
+                setInstrutor(
+                  e.target.value
+                )
+              }
+            />
+
+            {/* SELFIE */}
+            <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                checked={exigirSelfie}
+                checked={
+                  exigirSelfie
+                }
                 onChange={(e) =>
                   setExigirSelfie(
                     e.target.checked
@@ -257,19 +242,64 @@ export default function NovoEvento() {
                 }
               />
 
-              Exigir selfie para presença
-            </label>
+              <span className="text-white">
+                Exigir selfie
+              </span>
+            </div>
+
+            {/* BOTAO */}
+            <button
+              onClick={criarEvento}
+              disabled={salvando}
+              className="
+                w-full
+                bg-blue-600
+                hover:bg-blue-700
+                disabled:opacity-50
+                transition-all
+                py-4
+                rounded-2xl
+                text-lg
+                font-bold
+                text-white
+              "
+            >
+              {salvando
+                ? 'Criando...'
+                : 'Criar Evento'}
+            </button>
           </div>
-
-          <br />
-
-          <Button onClick={criarEvento}>
-            {salvando
-              ? 'Salvando...'
-              : 'Salvar'}
-          </Button>
         </div>
       </LayoutAdmin>
     </Protegido>
+  )
+}
+
+/* CAMPO */
+function Campo({
+  titulo,
+  ...props
+}: any) {
+  return (
+    <div>
+      <label className="block mb-2 text-sm text-slate-300">
+        {titulo}
+      </label>
+
+      <input
+        {...props}
+        className="
+          w-full
+          bg-slate-800
+          border
+          border-slate-700
+          rounded-2xl
+          p-4
+          text-white
+          outline-none
+          focus:border-blue-500
+        "
+      />
+    </div>
   )
 }
