@@ -15,16 +15,27 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
-  status?: string
   exigir_selfie: boolean
 }
 
 export default function EventoDetalhe() {
   const params = useParams()
 
-  const [evento, setEvento] = useState<Evento | null>(null)
-  const [presencas, setPresencas] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [evento, setEvento] =
+    useState<Evento | null>(null)
+
+  const [presencas, setPresencas] =
+    useState<any[]>([])
+
+  const [loading, setLoading] =
+    useState(true)
+
+  /* FILTROS */
+  const [filtroEmpresa, setFiltroEmpresa] =
+    useState('')
+
+  const [filtroTipo, setFiltroTipo] =
+    useState('')
 
   useEffect(() => {
     async function carregar() {
@@ -32,156 +43,238 @@ export default function EventoDetalhe() {
 
       if (!id) return
 
-      const { data, error } = await supabase
-        .from('eventos')
-        .select('*')
-        .eq('id', id)
-        .single()
+      const { data, error } =
+        await supabase
+          .from('eventos')
+          .select('*')
+          .eq('id', id)
+          .single()
 
       if (error) {
         console.log(error)
+
         alert('Erro ao buscar evento')
+
         setLoading(false)
+
         return
       }
 
       setEvento(data)
 
-      const { data: lista } = await supabase
-        .from('presencas')
-        .select('*')
-        .eq('evento_id', data.id)
-        .order('data_hora', { ascending: false })
+      const { data: lista } =
+        await supabase
+          .from('presencas')
+          .select('*')
+          .eq('evento_id', data.id)
+          .order('data_hora', {
+            ascending: false,
+          })
 
       setPresencas(lista || [])
+
       setLoading(false)
     }
 
     carregar()
   }, [])
 
-  /* 🚨 PASSO 4 - ENCERRAR EVENTO MANUAL */
-  async function encerrarEvento() {
-    if (!evento) return
+  /* FILTRO */
+  const presencasFiltradas =
+    presencas.filter((p) => {
+      const empresaOk =
+        !filtroEmpresa ||
+        p.empresa === filtroEmpresa
 
-    const confirm = window.confirm(
-      'Deseja realmente encerrar este evento?'
-    )
+      const tipoOk =
+        !filtroTipo ||
+        evento?.tipo === filtroTipo
 
-    if (!confirm) return
-
-    const { error } = await supabase
-      .from('eventos')
-      .update({ status: 'Encerrado' })
-      .eq('id', evento.id)
-
-    if (error) {
-      console.log(error)
-      alert('Erro ao encerrar evento')
-      return
-    }
-
-    setEvento({
-      ...evento,
-      status: 'Encerrado',
+      return empresaOk && tipoOk
     })
-
-    alert('Evento encerrado com sucesso!')
-  }
 
   /* CSV */
   function exportarCSV() {
     if (!evento) return
 
-    const linhas = [
-      ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
+    try {
+      const linhas = [
+        [
+          'Nome',
+          'Setor',
+          'Empresa',
+          'Data/Hora',
+        ],
 
-      ...presencas.map((p) => [
-        p.nome || '',
-        p.matricula || '',
-        p.setor || '',
-        p.empresa || '',
-        p.data_hora
-          ? new Date(p.data_hora).toLocaleString()
-          : '',
-      ]),
-    ]
+        ...presencasFiltradas.map(
+          (p) => [
+            p.nome || '',
+            p.setor || '',
+            p.empresa || '',
 
-    const csv = linhas
-      .map((linha) =>
-        linha.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')
+            p.data_hora
+              ? new Date(
+                  p.data_hora
+                ).toLocaleString()
+              : '',
+          ]
+        ),
+      ]
+
+      const csv = linhas
+        .map((linha) =>
+          linha
+            .map((campo) =>
+              `"${String(campo).replace(
+                /"/g,
+                '""'
+              )}"`
+            )
+            .join(';')
+        )
+        .join('\n')
+
+      const blob = new Blob([csv], {
+        type: 'text/csv;charset=utf-8;',
+      })
+
+      const url =
+        window.URL.createObjectURL(blob)
+
+      const link =
+        document.createElement('a')
+
+      link.href = url
+
+      link.setAttribute(
+        'download',
+        `presencas-${evento.titulo}.csv`
       )
-      .join('\n')
 
-    const blob = new Blob([csv], {
-      type: 'text/csv;charset=utf-8;',
-    })
+      document.body.appendChild(link)
 
-    const url = window.URL.createObjectURL(blob)
+      link.click()
 
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `presencas-${evento.titulo}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
+      link.remove()
+
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      console.log(err)
+
+      alert('Erro ao exportar CSV')
+    }
   }
 
   /* PDF */
   async function exportarPDF() {
     if (!evento) return
 
-    const autoTable = (await import('jspdf-autotable')).default
+    try {
+      const autoTable =
+        (await import(
+          'jspdf-autotable'
+        )).default
 
-    const doc = new jsPDF()
+      const doc = new jsPDF()
 
-    doc.setFontSize(18)
-    doc.text(`Relatório - ${evento.titulo}`, 14, 20)
+      doc.setFontSize(20)
 
-    doc.setFontSize(11)
-    doc.text(`Tipo: ${evento.tipo}`, 14, 32)
-    doc.text(`Instrutor: ${evento.instrutor}`, 14, 40)
-    doc.text(`Data: ${evento.data}`, 14, 48)
+      doc.text(
+        `Relatório - ${evento.titulo}`,
+        14,
+        20
+      )
 
-    autoTable(doc, {
-      startY: 60,
-      head: [['Nome', 'Matrícula', 'Setor', 'Empresa', 'Hora']],
-      body: presencas.map((p) => [
-        p.nome || '',
-        p.matricula || '',
-        p.setor || '',
-        p.empresa || '',
-        p.data_hora
-          ? new Date(p.data_hora).toLocaleTimeString()
-          : '',
-      ]),
-    })
+      doc.setFontSize(11)
 
-    doc.save(`relatorio-${evento.titulo}.pdf`)
+      doc.text(
+        `Tipo: ${evento.tipo}`,
+        14,
+        32
+      )
+
+      doc.text(
+        `Instrutor: ${evento.instrutor}`,
+        14,
+        40
+      )
+
+      doc.text(
+        `Data: ${evento.data}`,
+        14,
+        48
+      )
+
+      autoTable(doc, {
+        startY: 60,
+
+        head: [
+          [
+            'Nome',
+            'Setor',
+            'Empresa',
+            'Hora',
+          ],
+        ],
+
+        body:
+          presencasFiltradas.map(
+            (p) => [
+              p.nome || '',
+              p.setor || '',
+              p.empresa || '',
+
+              p.data_hora
+                ? new Date(
+                    p.data_hora
+                  ).toLocaleTimeString()
+                : '',
+            ]
+          ),
+      })
+
+      doc.save(
+        `relatorio-${evento.titulo}.pdf`
+      )
+    } catch (err) {
+      console.log(err)
+
+      alert('Erro ao gerar PDF')
+    }
   }
 
   function copiarLink() {
     if (!evento) return
 
-    navigator.clipboard.writeText(linkPresenca)
+    navigator.clipboard.writeText(
+      linkPresenca
+    )
+
     alert('Link copiado!')
   }
 
   if (loading) {
-    return <div className="p-10 text-white">Carregando...</div>
+    return (
+      <div className="p-10 text-white">
+        Carregando...
+      </div>
+    )
   }
 
   if (!evento) {
-    return <div className="p-10 text-white">Evento não encontrado</div>
+    return (
+      <div className="p-10 text-white">
+        Evento não encontrado
+      </div>
+    )
   }
 
-  const linkPresenca = `https://treinacheck.vercel.app/presenca/${evento.codigo}`
+  const linkPresenca = `https://minhalista.bba.ind.br/presenca/${evento.codigo}`
 
   return (
     <Protegido>
       <LayoutAdmin>
         <div className="space-y-8">
-
           {/* HEADER */}
           <div>
             <h1 className="text-4xl font-bold text-white">
@@ -191,34 +284,10 @@ export default function EventoDetalhe() {
             <p className="text-slate-400 mt-2">
               Central completa do evento
             </p>
-
-            {/* 🔥 BOTÃO ENCERRAR */}
-            <button
-              onClick={encerrarEvento}
-              className="
-                mt-4
-                bg-red-600
-                hover:bg-red-700
-                px-5
-                py-3
-                rounded-2xl
-                font-bold
-                text-white
-              "
-            >
-              ⛔ Encerrar Evento
-            </button>
-
-            {evento.status === 'Encerrado' && (
-              <p className="text-red-400 mt-2">
-                Evento encerrado
-              </p>
-            )}
           </div>
 
           {/* GRID */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
             {/* INFOS */}
             <div className="xl:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
               <h2 className="text-2xl font-bold mb-6 text-white">
@@ -226,42 +295,261 @@ export default function EventoDetalhe() {
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Info titulo="📚 Tipo" valor={evento.tipo} />
-                <Info titulo="📅 Data" valor={evento.data} />
-                <Info titulo="👨‍🏫 Instrutor" valor={evento.instrutor} />
-                <Info titulo="👥 Participantes" valor={presencas.length} />
+                <Info
+                  titulo="📚 Tipo"
+                  valor={evento.tipo}
+                />
+
+                <Info
+                  titulo="📅 Data"
+                  valor={evento.data}
+                />
+
+                <Info
+                  titulo="👨‍🏫 Instrutor"
+                  valor={evento.instrutor}
+                />
+
+                <Info
+                  titulo="👥 Participantes"
+                  valor={
+                    presencasFiltradas.length
+                  }
+                />
+
                 <Info
                   titulo="📸 Selfie"
-                  valor={evento.exigir_selfie ? 'Obrigatória' : 'Opcional'}
-                />
-                <Info
-                  titulo="🔐 Código"
-                  valor={evento.codigo.slice(0, 8)}
+                  valor={
+                    evento.exigir_selfie
+                      ? 'Obrigatória'
+                      : 'Opcional'
+                  }
                 />
               </div>
             </div>
 
-            {/* QR */}
+            {/* QR CODE */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center">
               <h2 className="text-2xl font-bold mb-6 text-white">
                 📲 QR Code
               </h2>
 
               <div className="bg-white p-5 rounded-3xl">
-                <QRCodeSVG value={linkPresenca} size={220} />
+                <QRCodeSVG
+                  value={linkPresenca}
+                  size={220}
+                />
               </div>
 
-              <button onClick={copiarLink} className="btn">
+              <button
+                onClick={copiarLink}
+                className="
+                  mt-6
+                  bg-blue-600
+                  hover:bg-blue-700
+                  transition-all
+                  px-5
+                  py-3
+                  rounded-2xl
+                  font-semibold
+                  w-full
+                "
+              >
                 Copiar Link
               </button>
 
-              <button onClick={exportarCSV} className="btn">
+              <button
+                onClick={exportarCSV}
+                className="
+                  mt-3
+                  bg-green-600
+                  hover:bg-green-700
+                  transition-all
+                  px-5
+                  py-3
+                  rounded-2xl
+                  font-semibold
+                  w-full
+                "
+              >
                 Exportar CSV
               </button>
 
-              <button onClick={exportarPDF} className="btn">
+              <button
+                onClick={exportarPDF}
+                className="
+                  mt-3
+                  bg-red-600
+                  hover:bg-red-700
+                  transition-all
+                  px-5
+                  py-3
+                  rounded-2xl
+                  font-semibold
+                  w-full
+                "
+              >
                 Exportar PDF
               </button>
+            </div>
+          </div>
+
+          {/* FILTROS */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
+            <h2 className="text-2xl font-bold mb-5">
+              🔎 Filtros
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* EMPRESA */}
+              <select
+                value={filtroEmpresa}
+                onChange={(e) =>
+                  setFiltroEmpresa(
+                    e.target.value
+                  )
+                }
+                className="
+                  bg-slate-800
+                  border
+                  border-slate-700
+                  rounded-2xl
+                  p-4
+                "
+              >
+                <option value="">
+                  Todas empresas
+                </option>
+
+                <option value="BBA">
+                  BBA
+                </option>
+
+                <option value="SUMA">
+                  SUMA
+                </option>
+
+                <option value="Outros">
+                  Outros
+                </option>
+              </select>
+
+              {/* TIPO */}
+              <select
+                value={filtroTipo}
+                onChange={(e) =>
+                  setFiltroTipo(
+                    e.target.value
+                  )
+                }
+                className="
+                  bg-slate-800
+                  border
+                  border-slate-700
+                  rounded-2xl
+                  p-4
+                "
+              >
+                <option value="">
+                  Todos tipos
+                </option>
+
+                <option value="DDS">
+                  DDS
+                </option>
+
+                <option value="DDQ">
+                  DDQ
+                </option>
+
+                <option value="Treinamento">
+                  Treinamento
+                </option>
+
+                <option value="Reunião">
+                  Reunião
+                </option>
+
+                <option value="Integração">
+                  Integração
+                </option>
+
+                <option value="Gestão de mudança">
+                  Gestão de mudança
+                </option>
+              </select>
+            </div>
+          </div>
+
+          {/* LISTA */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-bold text-white">
+                👥 Lista de Presença
+              </h2>
+
+              <div className="bg-slate-800 px-4 py-2 rounded-2xl text-white">
+                {
+                  presencasFiltradas.length
+                }{' '}
+                participantes
+              </div>
+            </div>
+
+            {presencasFiltradas.length ===
+              0 && (
+              <div className="text-center py-16 text-slate-400">
+                Nenhuma presença encontrada
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {presencasFiltradas.map(
+                (p) => (
+                  <div
+                    key={p.id}
+                    className="
+                      bg-slate-800
+                      rounded-3xl
+                      p-5
+                      flex
+                      flex-col
+                      md:flex-row
+                      md:items-center
+                      gap-5
+                    "
+                  >
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-white">
+                        {p.nome}
+                      </h3>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                        <MiniInfo
+                          titulo="Setor"
+                          valor={
+                            p.setor
+                          }
+                        />
+
+                        <MiniInfo
+                          titulo="Empresa"
+                          valor={
+                            p.empresa
+                          }
+                        />
+
+                        <MiniInfo
+                          titulo="Hora"
+                          valor={new Date(
+                            p.data_hora
+                          ).toLocaleTimeString()}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -270,12 +558,38 @@ export default function EventoDetalhe() {
   )
 }
 
-/* UI */
-function Info({ titulo, valor }: any) {
+/* INFO */
+function Info({
+  titulo,
+  valor,
+}: any) {
   return (
     <div className="bg-slate-800 p-5 rounded-2xl">
-      <p className="text-slate-400 text-sm">{titulo}</p>
-      <strong className="text-white text-lg">{valor}</strong>
+      <p className="text-slate-400 text-sm">
+        {titulo}
+      </p>
+
+      <strong className="text-lg text-white">
+        {valor}
+      </strong>
+    </div>
+  )
+}
+
+/* MINI INFO */
+function MiniInfo({
+  titulo,
+  valor,
+}: any) {
+  return (
+    <div className="bg-slate-900 p-3 rounded-2xl">
+      <p className="text-slate-500 text-xs">
+        {titulo}
+      </p>
+
+      <strong className="text-white">
+        {valor}
+      </strong>
     </div>
   )
 }
