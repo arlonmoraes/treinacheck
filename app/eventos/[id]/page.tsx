@@ -546,9 +546,9 @@ export default function EventoDetalhe() {
 
                         <MiniInfo
                           titulo="Hora"
-                          valor={new Date(
+                          valor={formatarHora(
                             p.data_hora
-                          ).toLocaleTimeString()}
+                          )}
                         />
                       </div>
                     </div>
