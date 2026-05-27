@@ -163,6 +163,7 @@ export default function Eventos() {
     <Protegido>
       <LayoutAdmin>
         <div className="space-y-8">
+
           {/* TOPO */}
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
             <div>
@@ -290,6 +291,15 @@ export default function Eventos() {
 
                   {/* INFOS */}
                   <div className="space-y-3 mt-6">
+
+                    <Info
+                      titulo="🔖 Código Evento"
+                      valor={
+                        evento.codigo_evento ||
+                        'Sem código'
+                      }
+                    />
+
                     <Info
                       titulo="📅 Data"
                       valor={
@@ -301,17 +311,6 @@ export default function Eventos() {
                       titulo="👨‍🏫 Responsável"
                       valor={
                         evento.instrutor
-                      }
-                    />
-
-                    <Info
-                      titulo="🔖 Código Evento"
-                      valor={
-                        evento.codigo_evento ||
-                        evento.codigo.slice(
-                          0,
-                          8
-                        )
                       }
                     />
                   </div>
