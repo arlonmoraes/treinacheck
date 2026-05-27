@@ -256,24 +256,35 @@ export default function RegistrarPresenca() {
         )
 
         const { error } =
-          await supabase
-            .from('presencas')
-            .insert([
-              {
-                evento_id:
-                  evento.id,
-                nome,
-                setor,
+          const agoraBrasil = new Date(
+  new Date().toLocaleString(
+    'en-US',
+    {
+      timeZone:
+        'America/Sao_Paulo',
+    }
+  )
+)
 
-                empresa:
-                  empresa ===
-                  'Outros'
-                    ? empresaOutra
-                    : empresa,
+const { error } =
+  await supabase
+    .from('presencas')
+    .insert([
+      {
+        evento_id: evento.id,
+        nome,
+        setor,
 
-                foto_url: fotoUrl,
-              },
-            ])
+        empresa:
+          empresa === 'Outros'
+            ? empresaOutra
+            : empresa,
+
+        foto_url: fotoUrl,
+
+        data_hora: agoraBrasil,
+      },
+    ])
 
         setSalvando(false)
 
