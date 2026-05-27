@@ -269,7 +269,7 @@ export default function EventoDetalhe() {
     )
   }
 
-  const linkPresenca = `https://minhalista.bba.ind.br/presenca/${evento.codigo}`
+  const linkPresenca = `https://treinacheck.vercel.app/presenca/${evento.codigo}`
 
   return (
     <Protegido>
