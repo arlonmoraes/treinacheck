@@ -39,6 +39,34 @@ export default function NovoEvento() {
   const [salvando, setSalvando] =
     useState(false)
 
+  // PREFIXOS DOS EVENTOS
+  function gerarPrefixo(
+    tipo: string
+  ) {
+    switch (tipo) {
+      case 'DDS':
+        return 'DDS'
+
+      case 'DDQ':
+        return 'DDQ'
+
+      case 'Treinamento':
+        return 'TRE'
+
+      case 'Reunião':
+        return 'REU'
+
+      case 'Integração':
+        return 'INT'
+
+      case 'Gestão de Mudança':
+        return 'GDM'
+
+      default:
+        return 'EVT'
+    }
+  }
+
   async function criarEvento() {
     if (
       !titulo ||
@@ -55,28 +83,54 @@ export default function NovoEvento() {
     setSalvando(true)
 
     // BUSCA EVENTOS DO MESMO TIPO
-    const { data: eventosTipo } =
-      await supabase
-        .from('eventos')
-        .select('id')
-        .eq('tipo', tipo)
+    const {
+      data: eventosTipo,
+      error: erroBusca,
+    } = await supabase
+      .from('eventos')
+      .select('id')
+      .eq('tipo', tipo)
 
+    if (erroBusca) {
+      console.log(erroBusca)
+
+      setSalvando(false)
+
+      alert(
+        'Erro ao gerar código do evento'
+      )
+
+      return
+    }
+
+    // NUMERO SEQUENCIAL
     const numero =
       (eventosTipo?.length || 0) + 1
 
-    // CODIGO SEQUENCIAL
-    const codigoEvento = `${numero} - ${tipo}`
+    // PREFIXO
+    const prefixo =
+      gerarPrefixo(tipo)
 
-    // QR CODE RANDOM
-    const codigo = crypto.randomUUID()
+    // CODIGO FINAL
+    const codigoEvento =
+      `${prefixo}-${String(
+        numero
+      ).padStart(3, '0')}`
 
+    // CODIGO QR RANDOM
+    const codigo =
+      crypto.randomUUID()
+
+    // INSERT
     const { error } =
       await supabase
         .from('eventos')
         .insert([
           {
             titulo,
+
             tipo,
+
             codigo_evento:
               codigoEvento,
 
@@ -108,7 +162,9 @@ export default function NovoEvento() {
       return
     }
 
-    alert('Evento criado com sucesso!')
+    alert(
+      `Evento criado: ${codigoEvento}`
+    )
 
     router.push('/eventos')
   }
@@ -117,6 +173,7 @@ export default function NovoEvento() {
     <Protegido>
       <LayoutAdmin>
         <div className="max-w-3xl mx-auto">
+          {/* HEADER */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-white">
               ➕ Novo Evento
@@ -127,13 +184,25 @@ export default function NovoEvento() {
             </p>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-5">
+          {/* CARD */}
+          <div
+            className="
+              bg-slate-900
+              border
+              border-slate-800
+              rounded-3xl
+              p-8
+              space-y-5
+            "
+          >
             {/* TITULO */}
             <Campo
               titulo="Título"
               value={titulo}
               onChange={(e: any) =>
-                setTitulo(e.target.value)
+                setTitulo(
+                  e.target.value
+                )
               }
             />
 
@@ -160,23 +229,27 @@ export default function NovoEvento() {
                   text-white
                 "
               >
-                <option>DDS</option>
+                <option value="DDS">
+                  DDS
+                </option>
 
-                <option>DDQ</option>
+                <option value="DDQ">
+                  DDQ
+                </option>
 
-                <option>
+                <option value="Treinamento">
                   Treinamento
                 </option>
 
-                <option>
+                <option value="Reunião">
                   Reunião
                 </option>
 
-                <option>
+                <option value="Integração">
                   Integração
                 </option>
 
-                <option>
+                <option value="Gestão de Mudança">
                   Gestão de Mudança
                 </option>
               </select>

@@ -14,6 +14,7 @@ type Evento = {
   titulo: string
   tipo: string
   data: string
+  codigo_evento: string
 }
 
 export default function Relatorios() {
@@ -68,6 +69,7 @@ export default function Relatorios() {
     )
   }
 
+  // FILTRO POR TIPO
   const eventosFiltrados =
     eventos.filter((e) => {
       return (
@@ -76,6 +78,7 @@ export default function Relatorios() {
       )
     })
 
+  // BUSCAR PRESENÇAS
   useEffect(() => {
     async function buscarPresencas() {
       if (
@@ -107,6 +110,7 @@ export default function Relatorios() {
     buscarPresencas()
   }, [eventosSelecionados])
 
+  // SELECIONAR TODOS VISÍVEIS
   function toggleAll() {
     const ids =
       eventosFiltrados.map(
@@ -123,6 +127,7 @@ export default function Relatorios() {
     }
   }
 
+  // EXPORTAR CSV
   function exportarCSV() {
     const linhas = [
       [
@@ -134,7 +139,9 @@ export default function Relatorios() {
 
       ...presencas.map((p) => [
         p.nome || '',
+
         p.setor || '',
+
         p.empresa || '',
 
         p.data_hora
@@ -179,6 +186,7 @@ export default function Relatorios() {
     window.URL.revokeObjectURL(url)
   }
 
+  // EXPORTAR PDF
   async function exportarPDF() {
     const doc = new jsPDF()
 
@@ -299,8 +307,8 @@ export default function Relatorios() {
                 Integração
               </option>
 
-              <option value="Gestão de mudança">
-                Gestão de mudança
+              <option value="Gestão de Mudança">
+                Gestão de Mudança
               </option>
             </select>
           </div>
@@ -367,6 +375,10 @@ export default function Relatorios() {
                   </th>
 
                   <th className="p-3">
+                    Código
+                  </th>
+
+                  <th className="p-3">
                     Evento
                   </th>
 
@@ -399,6 +411,10 @@ export default function Relatorios() {
                             )
                           }
                         />
+                      </td>
+
+                      <td className="p-3 font-bold text-blue-400">
+                        {e.codigo_evento}
                       </td>
 
                       <td className="p-3">
