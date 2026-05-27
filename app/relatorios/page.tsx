@@ -182,27 +182,41 @@ export default function Relatorios() {
   async function exportarPDF() {
     const doc = new jsPDF()
 
+    doc.setFontSize(20)
+
     doc.text(
       'Relatório de Presenças',
       14,
       20
     )
 
+    doc.setFontSize(11)
+
+    doc.text(
+      `Gerado em: ${formatarDataHora(
+        new Date().toISOString()
+      )}`,
+      14,
+      28
+    )
+
     autoTable(doc, {
-      startY: 30,
+      startY: 40,
 
       head: [
         [
           'Nome',
           'Setor',
           'Empresa',
-          'Data',
+          'Data/Hora',
         ],
       ],
 
       body: presencas.map((p) => [
         p.nome || '',
+
         p.setor || '',
+
         p.empresa || '',
 
         p.data_hora
