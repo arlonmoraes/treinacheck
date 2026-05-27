@@ -8,6 +8,11 @@ import { useParams } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import jsPDF from 'jspdf'
 
+import {
+  formatarDataHora,
+  formatarHora,
+} from '@/app/lib/data'
+
 type Evento = {
   id: string
   titulo: string
