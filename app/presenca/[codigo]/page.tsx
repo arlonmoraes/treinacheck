@@ -252,11 +252,11 @@ export default function RegistrarPresenca() {
         }
 
         setMensagem(
-          'Registrando presença...'
-        )
+  'Registrando presença...'
+)
 
-        const { error } =
-          const agoraBrasil = new Date(
+/* 🔥 HORÁRIO BRASIL */
+const agoraBrasil = new Date(
   new Date().toLocaleString(
     'en-US',
     {
@@ -271,18 +271,23 @@ const { error } =
     .from('presencas')
     .insert([
       {
-        evento_id: evento.id,
+        evento_id:
+          evento.id,
+
         nome,
+
         setor,
 
         empresa:
-          empresa === 'Outros'
+          empresa ===
+          'Outros'
             ? empresaOutra
             : empresa,
 
         foto_url: fotoUrl,
 
-        data_hora: agoraBrasil,
+        data_hora:
+          agoraBrasil.toISOString(),
       },
     ])
 
