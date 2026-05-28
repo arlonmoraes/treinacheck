@@ -67,19 +67,8 @@ export default function RegistrarPresenca() {
   const [nome, setNome] =
     useState('')
 
-  const [matricula, setMatricula] =
-    useState('')
-
   const [setor, setSetor] =
     useState('')
-
-  const [empresa, setEmpresa] =
-    useState('')
-
-  const [
-    empresaOutra,
-    setEmpresaOutra,
-  ] = useState('')
 
   const [foto, setFoto] =
     useState<File | null>(null)
@@ -126,20 +115,8 @@ export default function RegistrarPresenca() {
       return
     }
 
-    if (
-      !nome ||
-      !setor ||
-      !empresa
-    ) {
+    if (!nome || !setor) {
       alert('Preencha todos os campos')
-      return
-    }
-
-    if (
-      empresa === 'Outros' &&
-      !empresaOutra
-    ) {
-      alert('Digite a empresa')
       return
     }
 
@@ -209,6 +186,32 @@ export default function RegistrarPresenca() {
           }
         }
 
+        /* 🔥 BUSCA FUNCIONÁRIO */
+        const {
+          data: funcionario,
+          error: erroFuncionario,
+        } = await supabase
+          .from('funcionarios')
+          .select('*')
+          .ilike(
+            'nome',
+            nome.trim()
+          )
+          .single()
+
+        if (
+          erroFuncionario ||
+          !funcionario
+        ) {
+          setSalvando(false)
+
+          alert(
+            'Funcionário não encontrado'
+          )
+
+          return
+        }
+
         let fotoUrl = ''
 
         if (foto) {
@@ -257,7 +260,7 @@ export default function RegistrarPresenca() {
           'Registrando presença...'
         )
 
-        /* HORÁRIO BRASIL */
+        /* 🔥 HORÁRIO BRASIL */
         const agoraBrasil = new Date(
           new Date().toLocaleString(
             'en-US',
@@ -268,6 +271,7 @@ export default function RegistrarPresenca() {
           )
         )
 
+        /* 🔥 REGISTRA PRESENÇA */
         const { error } =
           await supabase
             .from('presencas')
@@ -276,19 +280,19 @@ export default function RegistrarPresenca() {
                 evento_id:
                   evento.id,
 
-                nome,
+                nome:
+                  funcionario.nome,
 
-                matricula,
+                matricula:
+                  funcionario.matricula,
+
+                empresa:
+                  funcionario.empresa,
 
                 setor,
 
-                empresa:
-                  empresa ===
-                  'Outros'
-                    ? empresaOutra
-                    : empresa,
-
-                foto_url: fotoUrl,
+                foto_url:
+                  fotoUrl,
 
                 data_hora:
                   agoraBrasil.toISOString(),
@@ -312,10 +316,7 @@ export default function RegistrarPresenca() {
         )
 
         setNome('')
-        setMatricula('')
         setSetor('')
-        setEmpresa('')
-        setEmpresaOutra('')
         setFoto(null)
         setMensagem('')
       },
@@ -416,15 +417,9 @@ export default function RegistrarPresenca() {
             placeholder="Nome completo"
             value={nome}
             onChange={(e: any) =>
-              setNome(e.target.value)
-            }
-          />
-
-          <Campo
-            placeholder="Matrícula (opcional)"
-            value={matricula}
-            onChange={(e: any) =>
-              setMatricula(e.target.value)
+              setNome(
+                e.target.value.toUpperCase()
+              )
             }
           />
 
@@ -435,47 +430,6 @@ export default function RegistrarPresenca() {
               setSetor(e.target.value)
             }
           />
-
-          {/* EMPRESA */}
-          <select
-            value={empresa}
-            onChange={(e) =>
-              setEmpresa(
-                e.target.value
-              )
-            }
-            className="
-              w-full
-              bg-slate-800
-              border
-              border-slate-700
-              rounded-2xl
-              p-4
-            "
-          >
-            <option value="">
-              Selecione a empresa
-            </option>
-
-            <option>BBA</option>
-
-            <option>SUMA</option>
-
-            <option>Outros</option>
-          </select>
-
-          {/* OUTROS */}
-          {empresa === 'Outros' && (
-            <Campo
-              placeholder="Digite a empresa"
-              value={empresaOutra}
-              onChange={(e: any) =>
-                setEmpresaOutra(
-                  e.target.value
-                )
-              }
-            />
-          )}
 
           {/* SELFIE */}
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5">
