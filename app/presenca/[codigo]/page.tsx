@@ -12,30 +12,18 @@ function calcularDistancia(
 ) {
   const R = 6371
 
-  const dLat =
-    ((lat2 - lat1) * Math.PI) / 180
-
-  const dLon =
-    ((lon2 - lon1) * Math.PI) / 180
+  const dLat = ((lat2 - lat1) * Math.PI) / 180
+  const dLon = ((lon2 - lon1) * Math.PI) / 180
 
   const a =
-    Math.sin(dLat / 2) *
-      Math.sin(dLat / 2) +
-    Math.cos(
-      (lat1 * Math.PI) / 180
-    ) *
-      Math.cos(
-        (lat2 * Math.PI) / 180
-      ) *
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2)
 
   const c =
-    2 *
-    Math.atan2(
-      Math.sqrt(a),
-      Math.sqrt(1 - a)
-    )
+    2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 
   return R * c
 }
@@ -57,50 +45,30 @@ type Evento = {
 
 export default function RegistrarPresenca() {
   const params = useParams()
+  const codigo = params?.codigo?.toString()
 
-  const codigo =
-    params?.codigo?.toString()
-
-  const [evento, setEvento] =
-    useState<Evento | null>(null)
-
-  const [nome, setNome] =
-    useState('')
-
-  const [setor, setSetor] =
-    useState('')
-
-  const [foto, setFoto] =
-    useState<File | null>(null)
-
-  const [salvando, setSalvando] =
-    useState(false)
-
-  const [mensagem, setMensagem] =
-    useState('')
+  const [evento, setEvento] = useState<Evento | null>(null)
+  const [nome, setNome] = useState('')
+  const [setor, setSetor] = useState('')
+  const [foto, setFoto] = useState<File | null>(null)
+  const [salvando, setSalvando] = useState(false)
+  const [mensagem, setMensagem] = useState('')
 
   useEffect(() => {
     if (!codigo) return
-
     buscarEvento()
   }, [codigo])
 
   async function buscarEvento() {
-    const { data, error } =
-      await supabase
-        .from('eventos')
-        .select('*')
-        .eq(
-          'codigo',
-          String(codigo).trim()
-        )
-        .single()
+    const { data, error } = await supabase
+      .from('eventos')
+      .select('*')
+      .eq('codigo', String(codigo).trim())
+      .single()
 
     if (error) {
       console.log(error)
-
       alert('Evento não encontrado')
-
       return
     }
 
@@ -120,10 +88,7 @@ export default function RegistrarPresenca() {
       return
     }
 
-    if (
-      evento.exigir_selfie &&
-      !foto
-    ) {
+    if (evento.exigir_selfie && !foto) {
       alert('Selfie obrigatória')
       return
     }
@@ -138,182 +103,104 @@ export default function RegistrarPresenca() {
       `${evento.data}T${evento.hora_fim}`
     )
 
-    if (
-      agora < inicio ||
-      agora > fim
-    ) {
-      alert(
-        'Fora do horário permitido'
-      )
-
+    if (agora < inicio || agora > fim) {
+      alert('Fora do horário permitido')
       return
     }
 
     setSalvando(true)
-
-    setMensagem(
-      'Validando localização...'
-    )
+    setMensagem('Validando localização...')
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const latitudeUsuario =
-          pos.coords.latitude
+        const latitudeUsuario = pos.coords.latitude
+        const longitudeUsuario = pos.coords.longitude
 
-        const longitudeUsuario =
-          pos.coords.longitude
-
-        if (
-          evento.latitude &&
-          evento.longitude
-        ) {
-          const distancia =
-            calcularDistancia(
-              latitudeUsuario,
-              longitudeUsuario,
-              evento.latitude,
-              evento.longitude
-            )
+        if (evento.latitude && evento.longitude) {
+          const distancia = calcularDistancia(
+            latitudeUsuario,
+            longitudeUsuario,
+            evento.latitude,
+            evento.longitude
+          )
 
           if (distancia > 0.01) {
             setSalvando(false)
-
-            alert(
-              'Você não está no local do evento'
-            )
-
+            alert('Você não está no local do evento')
             return
           }
         }
 
-        /* 🔥 BUSCA FUNCIONÁRIO */
-        const {
-          data: funcionario,
-          error: erroFuncionario,
-        } = await supabase
-          .from('funcionarios')
-          .select('*')
-          .ilike(
-            'nome',
-            nome.trim()
-          )
-          .single()
+        setMensagem('Buscando funcionário...')
 
-        if (
-          erroFuncionario ||
-          !funcionario
-        ) {
+        // 🔥 CORREÇÃO PRINCIPAL AQUI
+        const { data: funcionario, error: erroFuncionario } =
+          await supabase
+            .from('funcionarios')
+            .select('*')
+            .eq('nome', nome.trim())
+            .maybeSingle()
+
+        if (erroFuncionario || !funcionario) {
           setSalvando(false)
-
-          alert(
-            'Funcionário não encontrado'
-          )
-
+          alert('Funcionário não encontrado')
           return
         }
 
         let fotoUrl = ''
 
         if (foto) {
-          setMensagem(
-            'Enviando selfie...'
-          )
+          setMensagem('Enviando selfie...')
 
           const nomeArquivo = `${Date.now()}-${foto.name}`
 
-          const {
-            error: erroUpload,
-          } =
-            await supabase.storage
-              .from('selfies')
-              .upload(
-                nomeArquivo,
-                foto
-              )
+          const { error: erroUpload } = await supabase.storage
+            .from('selfies')
+            .upload(nomeArquivo, foto)
 
           if (erroUpload) {
-            console.log(
-              erroUpload
-            )
-
+            console.log(erroUpload)
             setSalvando(false)
-
-            alert(
-              'Erro ao enviar selfie'
-            )
-
+            alert('Erro ao enviar selfie')
             return
           }
 
-          const {
-            data: { publicUrl },
-          } = supabase.storage
+          const { data: publicData } = supabase.storage
             .from('selfies')
-            .getPublicUrl(
-              nomeArquivo
-            )
+            .getPublicUrl(nomeArquivo)
 
-          fotoUrl = publicUrl
+          fotoUrl = publicData.publicUrl
         }
 
-        setMensagem(
-          'Registrando presença...'
-        )
+        setMensagem('Registrando presença...')
 
-        /* 🔥 HORÁRIO BRASIL */
-        const agoraBrasil = new Date(
-          new Date().toLocaleString(
-            'en-US',
-            {
-              timeZone:
-                'America/Sao_Paulo',
-            }
-          )
-        )
+        // 🔥 DATA SEGURA (UTC padrão)
+        const agoraISO = new Date().toISOString()
 
-        /* 🔥 REGISTRA PRESENÇA */
-        const { error } =
-          await supabase
-            .from('presencas')
-            .insert([
-              {
-                evento_id:
-                  evento.id,
+        const { error } = await supabase.from('presencas').insert([
+          {
+            evento_id: evento.id,
+            nome: funcionario.nome,
+            matricula: funcionario.matricula,
 
-                nome:
-                  funcionario.nome,
+            // 🔥 GARANTIA QUE NÃO SOME
+            empresa: funcionario.empresa || 'NÃO INFORMADA',
 
-                matricula:
-                  funcionario.matricula,
-
-                empresa:
-                  funcionario.empresa,
-
-                setor,
-
-                foto_url:
-                  fotoUrl,
-
-                data_hora:
-                  agoraBrasil.toISOString(),
-              },
-            ])
+            setor,
+            foto_url: fotoUrl,
+            data_hora: agoraISO,
+          },
+        ])
 
         setSalvando(false)
 
         if (error) {
           console.log(error)
-
-          alert(
-            'Erro ao registrar presença'
-          )
-
+          alert('Erro ao registrar presença')
           return
         }
 
-        alert(
-          'Presença registrada com sucesso!'
-        )
+        alert('Presença registrada com sucesso!')
 
         setNome('')
         setSetor('')
@@ -322,10 +209,7 @@ export default function RegistrarPresenca() {
       },
       () => {
         setSalvando(false)
-
-        alert(
-          'Permita acesso à localização'
-        )
+        alert('Permita acesso à localização')
       }
     )
   }
@@ -340,99 +224,42 @@ export default function RegistrarPresenca() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex justify-center items-center p-5">
-      <div
-        className="
-          w-full
-          max-w-xl
-          bg-slate-900
-          border
-          border-slate-800
-          rounded-[32px]
-          shadow-2xl
-          p-8
-        "
-      >
-        {/* LOGO */}
-        <div className="flex justify-center mb-6">
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="h-20 object-contain"
-          />
-        </div>
+      <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-[32px] shadow-2xl p-8">
 
-        {/* HEADER */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold">
-            📲 Check-in
-          </h1>
-
-          <p className="text-slate-400 mt-2">
-            Registro de presença
-          </p>
+          <h1 className="text-4xl font-bold">📲 Check-in</h1>
+          <p className="text-slate-400 mt-2">Registro de presença</p>
         </div>
 
         {/* EVENTO */}
-        <div className="bg-slate-800 rounded-3xl p-6 space-y-4 mb-8">
-          <div>
-            <h2 className="text-2xl font-bold">
-              {evento.titulo}
-            </h2>
+        <div className="bg-slate-800 rounded-3xl p-6 mb-8">
+          <h2 className="text-2xl font-bold">{evento.titulo}</h2>
+          <p className="text-slate-400">{evento.tipo}</p>
 
-            <p className="text-slate-400">
-              {evento.tipo}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Info
-              titulo="📅 Data"
-              valor={evento.data}
-            />
-
-            <Info
-              titulo="👨‍🏫 Responsável"
-              valor={evento.instrutor}
-            />
-
-            <Info
-              titulo="🕒 Horário"
-              valor={`${evento.hora_inicio} - ${evento.hora_fim}`}
-            />
-
-            <Info
-              titulo="📸 Selfie"
-              valor={
-                evento.exigir_selfie
-                  ? 'Obrigatória'
-                  : 'Opcional'
-              }
-            />
+          <div className="mt-4 text-sm text-slate-300">
+            Empresa será preenchida automaticamente
           </div>
         </div>
 
         {/* FORM */}
         <div className="space-y-5">
+
           <Campo
             placeholder="Nome completo"
             value={nome}
             onChange={(e: any) =>
-              setNome(
-                e.target.value.toUpperCase()
-              )
+              setNome(e.target.value.toUpperCase())
             }
           />
 
           <Campo
             placeholder="Setor"
             value={setor}
-            onChange={(e: any) =>
-              setSetor(e.target.value)
-            }
+            onChange={(e: any) => setSetor(e.target.value)}
           />
 
           {/* SELFIE */}
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5">
+          <div className="bg-slate-800 p-5 rounded-2xl">
             <label className="block mb-3 font-semibold">
               📸 Selfie
             </label>
@@ -442,67 +269,26 @@ export default function RegistrarPresenca() {
               accept="image/*"
               capture="user"
               onChange={(e: any) =>
-                setFoto(
-                  e.target.files[0]
-                )
+                setFoto(e.target.files[0])
               }
             />
-
-            {foto && (
-              <p className="text-green-400 mt-3 text-sm">
-                ✅ Foto selecionada
-              </p>
-            )}
           </div>
 
-          {/* LOADING */}
           {mensagem && (
             <div className="bg-blue-500/20 text-blue-300 p-4 rounded-2xl text-center">
               {mensagem}
             </div>
           )}
 
-          {/* BOTÃO */}
           <button
-            onClick={
-              registrarPresenca
-            }
+            onClick={registrarPresenca}
             disabled={salvando}
-            className="
-              w-full
-              bg-blue-600
-              hover:bg-blue-700
-              disabled:opacity-50
-              transition-all
-              py-4
-              rounded-2xl
-              text-lg
-              font-bold
-              shadow-2xl
-            "
+            className="w-full bg-blue-600 py-4 rounded-2xl font-bold"
           >
-            {salvando
-              ? 'Registrando...'
-              : 'Confirmar presença'}
+            {salvando ? 'Registrando...' : 'Confirmar presença'}
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-/* INFO */
-function Info({
-  titulo,
-  valor,
-}: any) {
-  return (
-    <div className="bg-slate-900 p-4 rounded-2xl">
-      <p className="text-slate-400 text-sm">
-        {titulo}
-      </p>
-
-      <strong>{valor}</strong>
     </div>
   )
 }
@@ -512,17 +298,7 @@ function Campo(props: any) {
   return (
     <input
       {...props}
-      className="
-        w-full
-        bg-slate-800
-        border
-        border-slate-700
-        rounded-2xl
-        p-4
-        outline-none
-        focus:border-blue-500
-        transition-all
-      "
+      className="w-full bg-slate-800 p-4 rounded-2xl border border-slate-700"
     />
   )
 }
