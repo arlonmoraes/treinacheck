@@ -48,9 +48,11 @@ export default function RegistrarPresenca() {
   const codigo = params?.codigo?.toString()
 
   const [evento, setEvento] = useState<Evento | null>(null)
-  const [nome, setNome] = useState('')
+
+  const [matricula, setMatricula] = useState('')
   const [setor, setSetor] = useState('')
   const [foto, setFoto] = useState<File | null>(null)
+
   const [salvando, setSalvando] = useState(false)
   const [mensagem, setMensagem] = useState('')
 
@@ -83,7 +85,7 @@ export default function RegistrarPresenca() {
       return
     }
 
-    if (!nome || !setor) {
+    if (!matricula || !setor) {
       alert('Preencha todos os campos')
       return
     }
@@ -113,13 +115,13 @@ export default function RegistrarPresenca() {
 
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const latitudeUsuario = pos.coords.latitude
-        const longitudeUsuario = pos.coords.longitude
+        const latUser = pos.coords.latitude
+        const lonUser = pos.coords.longitude
 
         if (evento.latitude && evento.longitude) {
           const distancia = calcularDistancia(
-            latitudeUsuario,
-            longitudeUsuario,
+            latUser,
+            lonUser,
             evento.latitude,
             evento.longitude
           )
@@ -133,17 +135,17 @@ export default function RegistrarPresenca() {
 
         setMensagem('Buscando funcionário...')
 
-        // 🔥 CORREÇÃO PRINCIPAL AQUI
+        // 🔥 BUSCA POR MATRÍCULA (CORRETO)
         const { data: funcionario, error: erroFuncionario } =
           await supabase
             .from('funcionarios')
             .select('*')
-            .eq('nome', nome.trim())
-            .maybeSingle()
+            .eq('matricula', matricula.trim())
+            .single()
 
         if (erroFuncionario || !funcionario) {
           setSalvando(false)
-          alert('Funcionário não encontrado')
+          alert('Funcionário não encontrado (verifique matrícula)')
           return
         }
 
@@ -165,16 +167,16 @@ export default function RegistrarPresenca() {
             return
           }
 
-          const { data: publicData } = supabase.storage
+          const { data: publicUrl } = supabase.storage
             .from('selfies')
             .getPublicUrl(nomeArquivo)
 
-          fotoUrl = publicData.publicUrl
+          fotoUrl = publicUrl.publicUrl
         }
 
         setMensagem('Registrando presença...')
 
-        // 🔥 DATA SEGURA (UTC padrão)
+        // 🔥 DATA CORRETA (UTC)
         const agoraISO = new Date().toISOString()
 
         const { error } = await supabase.from('presencas').insert([
@@ -182,10 +184,7 @@ export default function RegistrarPresenca() {
             evento_id: evento.id,
             nome: funcionario.nome,
             matricula: funcionario.matricula,
-
-            // 🔥 GARANTIA QUE NÃO SOME
             empresa: funcionario.empresa || 'NÃO INFORMADA',
-
             setor,
             foto_url: fotoUrl,
             data_hora: agoraISO,
@@ -202,7 +201,7 @@ export default function RegistrarPresenca() {
 
         alert('Presença registrada com sucesso!')
 
-        setNome('')
+        setMatricula('')
         setSetor('')
         setFoto(null)
         setMensagem('')
@@ -226,6 +225,7 @@ export default function RegistrarPresenca() {
     <div className="min-h-screen bg-slate-950 text-white flex justify-center items-center p-5">
       <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-[32px] shadow-2xl p-8">
 
+        {/* HEADER */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold">📲 Check-in</h1>
           <p className="text-slate-400 mt-2">Registro de presença</p>
@@ -235,27 +235,23 @@ export default function RegistrarPresenca() {
         <div className="bg-slate-800 rounded-3xl p-6 mb-8">
           <h2 className="text-2xl font-bold">{evento.titulo}</h2>
           <p className="text-slate-400">{evento.tipo}</p>
-
-          <div className="mt-4 text-sm text-slate-300">
-            Empresa será preenchida automaticamente
-          </div>
         </div>
 
         {/* FORM */}
         <div className="space-y-5">
 
-          <Campo
-            placeholder="Nome completo"
-            value={nome}
-            onChange={(e: any) =>
-              setNome(e.target.value.toUpperCase())
-            }
+          <input
+            placeholder="Matrícula do funcionário"
+            value={matricula}
+            onChange={(e) => setMatricula(e.target.value)}
+            className="w-full bg-slate-800 p-4 rounded-2xl border border-slate-700"
           />
 
-          <Campo
+          <input
             placeholder="Setor"
             value={setor}
-            onChange={(e: any) => setSetor(e.target.value)}
+            onChange={(e) => setSetor(e.target.value)}
+            className="w-full bg-slate-800 p-4 rounded-2xl border border-slate-700"
           />
 
           {/* SELFIE */}
@@ -274,12 +270,14 @@ export default function RegistrarPresenca() {
             />
           </div>
 
+          {/* STATUS */}
           {mensagem && (
             <div className="bg-blue-500/20 text-blue-300 p-4 rounded-2xl text-center">
               {mensagem}
             </div>
           )}
 
+          {/* BOTÃO */}
           <button
             onClick={registrarPresenca}
             disabled={salvando}
@@ -290,15 +288,5 @@ export default function RegistrarPresenca() {
         </div>
       </div>
     </div>
-  )
-}
-
-/* CAMPO */
-function Campo(props: any) {
-  return (
-    <input
-      {...props}
-      className="w-full bg-slate-800 p-4 rounded-2xl border border-slate-700"
-    />
   )
 }
