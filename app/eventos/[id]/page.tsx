@@ -67,16 +67,13 @@ export default function EventoDetalhe() {
 
       setEvento(data)
 
-      const { data: lista } =
-        await supabase
-          .from('presencas')
-          .select('*')
-          .eq('evento_id', data.id)
-          .order('data_hora', {
-            ascending: false,
-          })
+      const { data: lista } = await supabase
+  .from('presencas')
+  .select('*')
+  .eq('evento_id', data.id)
+  .order('data_hora', { ascending: false })
 
-      setPresencas(lista || [])
+setPresencas(lista || [])
 
       setLoading(false)
     }
