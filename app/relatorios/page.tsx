@@ -62,9 +62,18 @@ export default function Relatorios() {
         return
       }
 
+      // 🔄 ALTERADO: Adicionado o Join com a tabela funcionarios
       const { data, error } = await supabase
         .from('presencas')
-        .select('*')
+        .select(`
+          *,
+          funcionarios (
+            nome,
+            matricula,
+            setor,
+            empresa
+          )
+        `)
         .in('evento_id', eventosSelecionados)
 
       if (error) {
@@ -93,11 +102,12 @@ export default function Relatorios() {
     const linhas = [
       ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
 
+      // 🔄 ALTERADO: Puxando os dados através de p.funcionarios
       ...presencas.map((p) => [
-        p.nome || '',
-        p.matricula || '', // ✔ GARANTIDO
-        p.setor || '',
-        p.empresa || '',
+        p.funcionarios?.nome || '',
+        p.funcionarios?.matricula || '',
+        p.funcionarios?.setor || '',
+        p.funcionarios?.empresa || '',
         p.data_hora ? formatarDataHora(p.data_hora) : '',
       ]),
     ]
@@ -141,11 +151,12 @@ export default function Relatorios() {
       startY: 40,
       head: [['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora']],
 
+      // 🔄 ALTERADO: Puxando os dados através de p.funcionarios
       body: presencas.map((p) => [
-        p.nome || '',
-        p.matricula || '', // ✔ GARANTIDO
-        p.setor || '',
-        p.empresa || '',
+        p.funcionarios?.nome || '',
+        p.funcionarios?.matricula || '', 
+        p.funcionarios?.setor || '',
+        p.funcionarios?.empresa || '',
         p.data_hora ? formatarDataHora(p.data_hora) : '',
       ]),
     })
