@@ -64,17 +64,9 @@ export default function Relatorios() {
 
       // 🔄 Fazendo o Join com a tabela funcionarios
       const { data, error } = await supabase
-        .from('presencas')
-        .select(`
-          *,
-          funcionarios (
-            nome,
-            matricula,
-            setor,
-            empresa
-          )
-        `)
-        .in('evento_id', eventosSelecionados)
+  .from('presencas')
+  .select('*')
+  .in('evento_id', eventosSelecionados)
 
       if (error) {
         console.log(error)
@@ -99,68 +91,117 @@ export default function Relatorios() {
 
   // CSV
   function exportarCSV() {
-    const linhas = [
-      ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
+  const linhas = [
+    [
+      'Nome',
+      'Matrícula',
+      'Setor',
+      'Empresa',
+      'Data/Hora',
+    ],
 
-      ...presencas.map((p) => [
-        p.funcionarios?.nome || '',
-        p.funcionarios?.matricula || '',
-        p.funcionarios?.setor || '',
-        p.funcionarios?.empresa || '',
-        p.data_hora ? formatarDataHora(p.data_hora) : '',
-      ]),
-    ]
+    ...presencas.map((p) => [
+      p.nome || '',
+      p.matricula || '',
+      p.setor || '',
+      p.empresa || '',
 
-    const csv = linhas
-      .map((linha) =>
-        linha.map((c) => `"${c}"`).join(';')
-      )
-      .join('\n')
+      p.data_hora
+        ? formatarDataHora(
+            p.data_hora
+          )
+        : '',
+    ]),
+  ]
 
-    const blob = new Blob([csv], {
-      type: 'text/csv;charset=utf-8;',
-    })
+  const csv = linhas
+    .map((linha) =>
+      linha
+        .map((c) => `"${c}"`)
+        .join(';')
+    )
+    .join('\n')
 
-    const url = window.URL.createObjectURL(blob)
+  const blob = new Blob([csv], {
+    type: 'text/csv;charset=utf-8;',
+  })
 
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'relatorio.csv'
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
-  }
+  const url =
+    window.URL.createObjectURL(
+      blob
+    )
+
+  const link =
+    document.createElement('a')
+
+  link.href = url
+
+  link.download =
+    'relatorio.csv'
+
+  document.body.appendChild(link)
+
+  link.click()
+
+  link.remove()
+
+  window.URL.revokeObjectURL(url)
+}
 
   // PDF
   function exportarPDF() {
-    const doc = new jsPDF()
+  const doc = new jsPDF()
 
-    doc.setFontSize(20)
-    doc.text('Relatório de Presenças', 14, 20)
+  doc.setFontSize(20)
 
-    doc.setFontSize(11)
-    doc.text(
-      `Gerado em: ${formatarDataHora(new Date().toISOString())}`,
-      14,
-      28
-    )
+  doc.text(
+    'Relatório de Presenças',
+    14,
+    20
+  )
 
-    autoTable(doc, {
-      startY: 40,
-      head: [['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora']],
+  doc.setFontSize(11)
 
-      body: presencas.map((p) => [
-        p.funcionarios?.nome || '',
-        p.funcionarios?.matricula || '', 
-        p.funcionarios?.setor || '',
-        p.funcionarios?.empresa || '',
-        p.data_hora ? formatarDataHora(p.data_hora) : '',
-      ]),
-    })
+  doc.text(
+    `Gerado em: ${formatarDataHora(
+      new Date().toISOString()
+    )}`,
+    14,
+    28
+  )
 
-    doc.save('relatorio.pdf')
-  }
+  autoTable(doc, {
+    startY: 40,
+
+    head: [
+      [
+        'Nome',
+        'Matrícula',
+        'Setor',
+        'Empresa',
+        'Data/Hora',
+      ],
+    ],
+
+    body: presencas.map((p) => [
+      p.nome || '',
+
+      p.matricula || '',
+
+      p.setor || '',
+
+      p.empresa || '',
+
+      p.data_hora
+        ? formatarDataHora(
+            p.data_hora
+          )
+        : '',
+    ]),
+  })
+
+  doc.save('relatorio.pdf')
+}
 
   if (loading) {
     return <div className="p-10 text-white">Carregando...</div>

@@ -285,37 +285,33 @@ export default function RegistrarPresenca() {
         )
 
         const { error } =
-          await supabase
-            .from('presencas')
-            .insert([
-              {
-                evento_id:
-                  evento.id,
+  await supabase
+    .from('presencas')
+    .insert([
+      {
+        evento_id:
+          evento.id,
 
-                funcionario_id:
-                  funcionario?.id ||
-                  null,
+        nome,
 
-                nome,
+        matricula:
+          funcionario?.matricula ||
+          '',
 
-                matricula:
-                  funcionario?.matricula ||
-                  '',
+        setor,
 
-                setor,
+        empresa:
+          empresa ===
+          'Outros'
+            ? empresaOutra
+            : empresa,
 
-                empresa:
-                  empresa ===
-                  'Outros'
-                    ? empresaOutra
-                    : empresa,
+        foto_url: fotoUrl,
 
-                foto_url: fotoUrl,
-
-                data_hora:
-                  agoraBrasil.toISOString(),
-              },
-            ])
+        data_hora:
+          agoraBrasil.toISOString(),
+      },
+    ])
 
         setSalvando(false)
 
