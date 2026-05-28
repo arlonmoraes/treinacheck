@@ -132,6 +132,7 @@ export default function Relatorios() {
     const linhas = [
       [
         'Nome',
+	'Matrícula',
         'Setor',
         'Empresa',
         'Data/Hora',
@@ -139,6 +140,8 @@ export default function Relatorios() {
 
       ...presencas.map((p) => [
         p.nome || '',
+
+	p.matricula || '',
 
         p.setor || '',
 
@@ -214,6 +217,7 @@ export default function Relatorios() {
       head: [
         [
           'Nome',
+	  'Matrícula',
           'Setor',
           'Empresa',
           'Data/Hora',
@@ -222,6 +226,8 @@ export default function Relatorios() {
 
       body: presencas.map((p) => [
         p.nome || '',
+
+	p.matricula || '',
 
         p.setor || '',
 

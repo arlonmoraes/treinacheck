@@ -67,6 +67,9 @@ export default function RegistrarPresenca() {
   const [nome, setNome] =
     useState('')
 
+  const [matricula, setMatricula] =
+    useState('')
+
   const [setor, setSetor] =
     useState('')
 
@@ -195,7 +198,6 @@ export default function RegistrarPresenca() {
               evento.longitude
             )
 
-          // 10 metros
           if (distancia > 0.01) {
             setSalvando(false)
 
@@ -252,44 +254,46 @@ export default function RegistrarPresenca() {
         }
 
         setMensagem(
-  'Registrando presença...'
-)
+          'Registrando presença...'
+        )
 
-/* 🔥 HORÁRIO BRASIL */
-const agoraBrasil = new Date(
-  new Date().toLocaleString(
-    'en-US',
-    {
-      timeZone:
-        'America/Sao_Paulo',
-    }
-  )
-)
+        /* HORÁRIO BRASIL */
+        const agoraBrasil = new Date(
+          new Date().toLocaleString(
+            'en-US',
+            {
+              timeZone:
+                'America/Sao_Paulo',
+            }
+          )
+        )
 
-const { error } =
-  await supabase
-    .from('presencas')
-    .insert([
-      {
-        evento_id:
-          evento.id,
+        const { error } =
+          await supabase
+            .from('presencas')
+            .insert([
+              {
+                evento_id:
+                  evento.id,
 
-        nome,
+                nome,
 
-        setor,
+                matricula,
 
-        empresa:
-          empresa ===
-          'Outros'
-            ? empresaOutra
-            : empresa,
+                setor,
 
-        foto_url: fotoUrl,
+                empresa:
+                  empresa ===
+                  'Outros'
+                    ? empresaOutra
+                    : empresa,
 
-        data_hora:
-          agoraBrasil.toISOString(),
-      },
-    ])
+                foto_url: fotoUrl,
+
+                data_hora:
+                  agoraBrasil.toISOString(),
+              },
+            ])
 
         setSalvando(false)
 
@@ -308,6 +312,7 @@ const { error } =
         )
 
         setNome('')
+        setMatricula('')
         setSetor('')
         setEmpresa('')
         setEmpresaOutra('')
@@ -412,6 +417,14 @@ const { error } =
             value={nome}
             onChange={(e: any) =>
               setNome(e.target.value)
+            }
+          />
+
+          <Campo
+            placeholder="Matrícula (opcional)"
+            value={matricula}
+            onChange={(e: any) =>
+              setMatricula(e.target.value)
             }
           />
 
