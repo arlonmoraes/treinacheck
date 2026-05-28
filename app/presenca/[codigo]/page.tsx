@@ -67,9 +67,6 @@ export default function RegistrarPresenca() {
   const [nome, setNome] =
     useState('')
 
-  const [matricula, setMatricula] =
-    useState('')
-
   const [setor, setSetor] =
     useState('')
 
@@ -254,6 +251,25 @@ export default function RegistrarPresenca() {
         }
 
         setMensagem(
+          'Buscando funcionário...'
+        )
+
+        // BUSCA FUNCIONÁRIO
+        const {
+          data:
+            funcionariosEncontrados,
+        } = await supabase
+          .from('funcionarios')
+          .select('*')
+          .ilike(
+            'nome',
+            nome.trim()
+          )
+
+        const funcionario =
+          funcionariosEncontrados?.[0]
+
+        setMensagem(
           'Registrando presença...'
         )
 
@@ -276,9 +292,15 @@ export default function RegistrarPresenca() {
                 evento_id:
                   evento.id,
 
+                funcionario_id:
+                  funcionario?.id ||
+                  null,
+
                 nome,
 
-                matricula,
+                matricula:
+                  funcionario?.matricula ||
+                  '',
 
                 setor,
 
@@ -312,7 +334,6 @@ export default function RegistrarPresenca() {
         )
 
         setNome('')
-        setMatricula('')
         setSetor('')
         setEmpresa('')
         setEmpresaOutra('')
@@ -417,14 +438,6 @@ export default function RegistrarPresenca() {
             value={nome}
             onChange={(e: any) =>
               setNome(e.target.value)
-            }
-          />
-
-          <Campo
-            placeholder="Matrícula (opcional)"
-            value={matricula}
-            onChange={(e: any) =>
-              setMatricula(e.target.value)
             }
           />
 
