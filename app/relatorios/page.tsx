@@ -1,311 +1,279 @@
 'use client'
 
+import LayoutAdmin from '@/app/components/LayoutAdmin'
+import Protegido from '@/app/components/Protegido'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/app/lib/supabase'
-import { useParams } from 'next/navigation'
-
-function calcularDistancia(
-  lat1: number,
-  lon1: number,
-  lat2: number,
-  lon2: number
-) {
-  const R = 6371
-
-  const dLat = ((lat2 - lat1) * Math.PI) / 180
-  const dLon = ((lon2 - lon1) * Math.PI) / 180
-
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2)
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-
-  return R * c
-}
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { formatarDataHora } from '@/app/lib/data'
 
 type Evento = {
   id: string
   titulo: string
   tipo: string
   data: string
-  instrutor: string
-  codigo: string
-  status: string
-  hora_inicio: string
-  hora_fim: string
-  latitude: number | null
-  longitude: number | null
-  exigir_selfie: boolean
+  codigo_evento: string
 }
 
-export default function RegistrarPresenca() {
-  const params = useParams()
-  const codigo = params?.codigo?.toString()
-
-  const [evento, setEvento] = useState<Evento | null>(null)
-  const [nome, setNome] = useState('')
-  const [setor, setSetor] = useState('')
-  const [foto, setFoto] = useState<File | null>(null)
-  const [salvando, setSalvando] = useState(false)
-  const [mensagem, setMensagem] = useState('')
+export default function Relatorios() {
+  const [eventos, setEventos] = useState<Evento[]>([])
+  const [eventosSelecionados, setEventosSelecionados] = useState<string[]>([])
+  const [presencas, setPresencas] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filtroTipo, setFiltroTipo] = useState('')
 
   useEffect(() => {
-    if (!codigo) return
-    buscarEvento()
-  }, [codigo])
+    buscarEventos()
+  }, [])
 
-  async function buscarEvento() {
+  async function buscarEventos() {
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
-      .eq('codigo', String(codigo).trim())
-      .single()
+      .order('data', { ascending: false })
 
     if (error) {
       console.log(error)
-      alert('Evento não encontrado')
+      alert('Erro ao buscar eventos')
       return
     }
 
-    setEvento(data)
+    setEventos(data || [])
+    setLoading(false)
   }
 
-  async function registrarPresenca() {
-    if (!evento) return
+  function toggleEvento(id: string) {
+    setEventosSelecionados((prev) =>
+      prev.includes(id)
+        ? prev.filter((e) => e !== id)
+        : [...prev, id]
+    )
+  }
 
-    if (evento.status === 'Encerrado') {
-      alert('Evento encerrado')
-      return
-    }
+  const eventosFiltrados = eventos.filter((e) => {
+    return !filtroTipo || e.tipo === filtroTipo
+  })
 
-    if (!nome || !setor) {
-      alert('Preencha todos os campos')
-      return
-    }
+  useEffect(() => {
+    async function buscarPresencas() {
+      if (eventosSelecionados.length === 0) {
+        setPresencas([])
+        return
+      }
 
-    if (evento.exigir_selfie && !foto) {
-      alert('Selfie obrigatória')
-      return
-    }
-
-    const agora = new Date()
-    const inicio = new Date(`${evento.data}T${evento.hora_inicio}`)
-    const fim = new Date(`${evento.data}T${evento.hora_fim}`)
-
-    if (agora < inicio || agora > fim) {
-      alert('Fora do horário permitido')
-      return
-    }
-
-    setSalvando(true)
-    setMensagem('Validando localização...')
-
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const latitudeUsuario = pos.coords.latitude
-        const longitudeUsuario = pos.coords.longitude
-
-        if (evento.latitude && evento.longitude) {
-          const distancia = calcularDistancia(
-            latitudeUsuario,
-            longitudeUsuario,
-            evento.latitude,
-            evento.longitude
-          )
-
-          // 🔄 ALTERADO: Distância ajustada para 50 metros (0.05) para evitar falso-negativo por imprecisão do GPS
-          if (distancia > 0.05) {
-            setSalvando(false)
-            alert('Você não está no local do evento (GPS muito distante)')
-            return
-          }
-        }
-
-        setMensagem('Buscando funcionário...')
-
-        /* 🔥 BUSCA FUNCIONÁRIO */
-        const { data: funcionario, error: erroFuncionario } = await supabase
-          .from('funcionarios')
-          .select('*')
-          .ilike('nome', nome.trim())
-          .single()
-
-        if (erroFuncionario || !funcionario) {
-          setSalvando(false)
-          alert('Funcionário não encontrado. Verifique se o nome está exato.')
-          return
-        }
-
-        let fotoUrl = ''
-
-        if (foto) {
-          setMensagem('Enviando selfie...')
-          const nomeArquivo = `${Date.now()}-${foto.name}`
-
-          const { error: erroUpload } = await supabase.storage
-            .from('selfies')
-            .upload(nomeArquivo, foto)
-
-          if (erroUpload) {
-            console.log(erroUpload)
-            setSalvando(false)
-            alert('Erro ao enviar selfie')
-            return
-          }
-
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from('selfies').getPublicUrl(nomeArquivo)
-
-          fotoUrl = publicUrl
-        }
-
-        setMensagem('Registrando presença...')
-
-        /* 🔥 REGISTRA PRESENÇA */
-        // 🔄 ALTERADO: data_hora simplificado para o padrão universal ISO.
-        const { error } = await supabase.from('presencas').insert([
-          {
-            evento_id: evento.id,
-            nome: funcionario.nome,
-            matricula: funcionario.matricula, // Isso agora faz a ponte com sua Foreign Key!
-            empresa: funcionario.empresa,
+      // 🔄 Fazendo o Join com a tabela funcionarios
+      const { data, error } = await supabase
+        .from('presencas')
+        .select(`
+          *,
+          funcionarios (
+            nome,
+            matricula,
             setor,
-            foto_url: fotoUrl,
-            data_hora: new Date().toISOString(), 
-          },
-        ])
+            empresa
+          )
+        `)
+        .in('evento_id', eventosSelecionados)
 
-        setSalvando(false)
+      if (error) {
+        console.log(error)
+        return
+      }
 
-        if (error) {
-          console.log(error)
-          alert('Erro ao registrar presença')
-          return
-        }
+      setPresencas(data || [])
+    }
 
-        alert('Presença registrada com sucesso!')
+    buscarPresencas()
+  }, [eventosSelecionados])
 
-        setNome('')
-        setSetor('')
-        setFoto(null)
-        setMensagem('')
-      },
-      () => {
-        setSalvando(false)
-        alert('Permita acesso à localização para registrar presença.')
-      },
-      { enableHighAccuracy: true } // Força o celular a usar o GPS preciso
-    )
+  function toggleAll() {
+    const ids = eventosFiltrados.map((e) => e.id)
+
+    if (eventosSelecionados.length === ids.length) {
+      setEventosSelecionados([])
+    } else {
+      setEventosSelecionados(ids)
+    }
   }
 
-  if (!evento) {
-    return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
-        Carregando evento...
-      </div>
+  // CSV
+  function exportarCSV() {
+    const linhas = [
+      ['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora'],
+
+      ...presencas.map((p) => [
+        p.funcionarios?.nome || '',
+        p.funcionarios?.matricula || '',
+        p.funcionarios?.setor || '',
+        p.funcionarios?.empresa || '',
+        p.data_hora ? formatarDataHora(p.data_hora) : '',
+      ]),
+    ]
+
+    const csv = linhas
+      .map((linha) =>
+        linha.map((c) => `"${c}"`).join(';')
+      )
+      .join('\n')
+
+    const blob = new Blob([csv], {
+      type: 'text/csv;charset=utf-8;',
+    })
+
+    const url = window.URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'relatorio.csv'
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  }
+
+  // PDF
+  function exportarPDF() {
+    const doc = new jsPDF()
+
+    doc.setFontSize(20)
+    doc.text('Relatório de Presenças', 14, 20)
+
+    doc.setFontSize(11)
+    doc.text(
+      `Gerado em: ${formatarDataHora(new Date().toISOString())}`,
+      14,
+      28
     )
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Nome', 'Matrícula', 'Setor', 'Empresa', 'Data/Hora']],
+
+      body: presencas.map((p) => [
+        p.funcionarios?.nome || '',
+        p.funcionarios?.matricula || '', 
+        p.funcionarios?.setor || '',
+        p.funcionarios?.empresa || '',
+        p.data_hora ? formatarDataHora(p.data_hora) : '',
+      ]),
+    })
+
+    doc.save('relatorio.pdf')
+  }
+
+  if (loading) {
+    return <div className="p-10 text-white">Carregando...</div>
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex justify-center items-center p-5">
-      <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-[32px] shadow-2xl p-8">
-        {/* LOGO */}
-        <div className="flex justify-center mb-6">
-          <img src="/logo.png" alt="Logo" className="h-20 object-contain" />
-        </div>
+    <Protegido>
+      <LayoutAdmin>
+        <div className="space-y-8">
 
-        {/* HEADER */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold">📲 Check-in</h1>
-          <p className="text-slate-400 mt-2">Registro de presença</p>
-        </div>
-
-        {/* EVENTO */}
-        <div className="bg-slate-800 rounded-3xl p-6 space-y-4 mb-8">
+          {/* HEADER */}
           <div>
-            <h2 className="text-2xl font-bold">{evento.titulo}</h2>
-            <p className="text-slate-400">{evento.tipo}</p>
+            <h1 className="text-4xl font-bold text-white">
+              📄 Relatórios
+            </h1>
+            <p className="text-slate-400 mt-2">
+              Exporte relatórios filtrados
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Info titulo="📅 Data" valor={evento.data} />
-            <Info titulo="👨‍🏫 Responsável" valor={evento.instrutor} />
-            <Info titulo="🕒 Horário" valor={`${evento.hora_inicio} - ${evento.hora_fim}`} />
-            <Info
-              titulo="📸 Selfie"
-              valor={evento.exigir_selfie ? 'Obrigatória' : 'Opcional'}
-            />
-          </div>
-        </div>
+          {/* FILTRO */}
+          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800">
+            <h2 className="text-white font-bold mb-4">
+              🔎 Filtrar por tipo
+            </h2>
 
-        {/* FORM */}
-        <div className="space-y-5">
-          <Campo
-            placeholder="Nome completo"
-            value={nome}
-            onChange={(e: any) => setNome(e.target.value.toUpperCase())}
-          />
-
-          <Campo
-            placeholder="Setor"
-            value={setor}
-            onChange={(e: any) => setSetor(e.target.value)}
-          />
-
-          {/* SELFIE */}
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-5">
-            <label className="block mb-3 font-semibold">📸 Selfie</label>
-            <input
-              type="file"
-              accept="image/*"
-              capture="user"
-              onChange={(e: any) => setFoto(e.target.files[0])}
-            />
-            {foto && <p className="text-green-400 mt-3 text-sm">✅ Foto selecionada</p>}
+            <select
+              value={filtroTipo}
+              onChange={(e) => setFiltroTipo(e.target.value)}
+              className="bg-slate-800 p-3 rounded-xl text-white w-full"
+            >
+              <option value="">Todos</option>
+              <option value="DDS">DDS</option>
+              <option value="DDQ">DDQ</option>
+              <option value="Treinamento">Treinamento</option>
+              <option value="Reunião">Reunião</option>
+              <option value="Integração">Integração</option>
+              <option value="Gestão de Mudança">Gestão de Mudança</option>
+            </select>
           </div>
 
-          {/* LOADING */}
-          {mensagem && (
-            <div className="bg-blue-500/20 text-blue-300 p-4 rounded-2xl text-center">
-              {mensagem}
+          {/* BOTÕES */}
+          <div className="flex gap-3 flex-wrap">
+            <button
+              onClick={toggleAll}
+              className="bg-slate-700 px-4 py-2 rounded-xl text-white"
+            >
+              Selecionar visíveis
+            </button>
+
+            <button
+              onClick={exportarCSV}
+              className="bg-green-600 px-4 py-2 rounded-xl text-white"
+            >
+              Exportar CSV
+            </button>
+
+            <button
+              onClick={exportarPDF}
+              className="bg-red-600 px-4 py-2 rounded-xl text-white"
+            >
+              Exportar PDF
+            </button>
+
+            <div className="ml-auto text-slate-300">
+              👥 {eventosSelecionados.length} selecionados
             </div>
-          )}
+          </div>
 
-          {/* BOTÃO */}
-          <button
-            onClick={registrarPresenca}
-            disabled={salvando}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all py-4 rounded-2xl text-lg font-bold shadow-2xl"
-          >
-            {salvando ? 'Registrando...' : 'Confirmar presença'}
-          </button>
+          {/* LISTA */}
+          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 overflow-auto">
+            <table className="w-full text-left text-white">
+              <thead>
+                <tr className="text-slate-400 border-b border-slate-800">
+                  <th>✔</th>
+                  <th>Código</th>
+                  <th>Evento</th>
+                  <th>Tipo</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {eventosFiltrados.map((e) => (
+                  <tr key={e.id} className="border-t border-slate-800">
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={eventosSelecionados.includes(e.id)}
+                        onChange={() => toggleEvento(e.id)}
+                      />
+                    </td>
+
+                    <td className="text-blue-400 font-bold">
+                      {e.codigo_evento}
+                    </td>
+                    <td>{e.titulo}</td>
+                    <td>{e.tipo}</td>
+                    <td>{e.data}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* RESULTADO */}
+          <div className="bg-slate-900 p-6 rounded-2xl border border-slate-800 text-slate-300">
+            👥 Presenças encontradas:{' '}
+            <strong>{presencas.length}</strong>
+          </div>
+
         </div>
-      </div>
-    </div>
-  )
-}
-
-/* INFO */
-function Info({ titulo, valor }: any) {
-  return (
-    <div className="bg-slate-900 p-4 rounded-2xl">
-      <p className="text-slate-400 text-sm">{titulo}</p>
-      <strong>{valor}</strong>
-    </div>
-  )
-}
-
-/* CAMPO */
-function Campo(props: any) {
-  return (
-    <input
-      {...props}
-      className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 outline-none focus:border-blue-500 transition-all"
-    />
+      </LayoutAdmin>
+    </Protegido>
   )
 }
