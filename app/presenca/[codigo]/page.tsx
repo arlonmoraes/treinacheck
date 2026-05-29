@@ -55,7 +55,6 @@ export default function RegistrarPresenca() {
   const [salvando, setSalvando] = useState(false)
   const [mensagem, setMensagem] = useState('')
 
-  // NOVOS ESTADOS PARA TRATAR NOMES REPETIDOS
   const [homonimos, setHomonimos] = useState<any[]>([])
   const [funcionarioIdCorreto, setFuncionarioIdCorreto] = useState('')
 
@@ -113,51 +112,55 @@ export default function RegistrarPresenca() {
     }
 
     setSalvando(true)
-    setMensagem('Verificando funcionário...')
+    setMensagem('Buscando funcionário...')
 
-    // 1. BUSCA DE FUNCIONÁRIO ANTECIPADA (Para checar homônimos)
-    const nomeDigitado = nome.trim().toLowerCase()
+    const nomeDigitado = nome.trim()
 
-    const { data: funcionariosEncontrados } = await supabase
+    // 1. BUSCA POR APROXIMAÇÃO NO SUPABASE (.ilike)
+    // O '%texto%' significa que vai buscar o termo em qualquer parte do nome ignorando maiúsculas/minúsculas
+    const { data: correspondentes, error: erroBusca } = await supabase
       .from('funcionarios')
       .select('*')
+      .ilike('nome', `%${nomeDigitado}%`)
 
-    const correspondentes =
-      funcionariosEncontrados?.filter(
-        (f: any) => f.nome?.trim().toLowerCase() === nomeDigitado
-      ) || []
+    if (erroBusca || !correspondentes || correspondentes.length === 0) {
+      setSalvando(false)
+      setMensagem('')
+      alert('Funcionário não encontrado com este nome. Digite novamente.')
+      return
+    }
 
     let idParaSalvar = null
     let matriculaParaSalvar = null
+    let nomeParaSalvar = nome.trim() // Padrão se nada for achado, mas vamos atualizar abaixo
 
-    // SE ACHOU MAIS DE UM NOME IGUAL
+    // SE ACHOU MAIS DE UM NOME QUE COMBINA (Ex: digitou "Arlo" e achou "Arlon" e "Carlos")
     if (correspondentes.length > 1) {
-      // Se a pessoa ainda não escolheu quem ela é na caixinha
       if (!funcionarioIdCorreto) {
         setHomonimos(correspondentes)
         setSalvando(false)
         setMensagem('')
-        // Pausa a execução aqui para a pessoa escolher na tela
-        return 
+        return // Pausa para o usuário selecionar na lista suspensa
       } else {
-        // Se ela já escolheu na caixinha, pegamos os dados corretos
         const escolhido = correspondentes.find(
           (f: any) => f.id === funcionarioIdCorreto
         )
         if (escolhido) {
           idParaSalvar = escolhido.id
           matriculaParaSalvar = escolhido.matricula
+          nomeParaSalvar = escolhido.nome // Grava o nome certinho do banco (ex: "Arlon")
         }
       }
     } else if (correspondentes.length === 1) {
-      // Se achou apenas 1, segue normal
+      // Se achou exatamente 1 pessoa por aproximação, puxa os dados dela automaticamente
       idParaSalvar = correspondentes[0].id
       matriculaParaSalvar = correspondentes[0].matricula
+      nomeParaSalvar = correspondentes[0].nome // Corrige o nome automaticamente (ex: de "Arlo" para "Arlon")
     }
 
     setMensagem('Validando localização...')
 
-    // 2. VALIDAÇÃO DE GPS E UPLOAD DE FOTO (Só roda depois do nome estar 100% certo)
+    // 2. VALIDAÇÃO DE GPS E UPLOAD DE FOTO
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const latitudeUsuario = pos.coords.latitude
@@ -216,7 +219,7 @@ export default function RegistrarPresenca() {
           {
             evento_id: evento.id,
             funcionario_id: idParaSalvar || null,
-            nome: nome.trim(),
+            nome: nomeParaSalvar, // Salva o nome correto obtido do banco de dados
             matricula: matriculaParaSalvar || null,
             setor: setor.trim(),
             empresa: empresa === 'Outros' ? empresaOutra.trim() : empresa,
@@ -233,9 +236,8 @@ export default function RegistrarPresenca() {
           return
         }
 
-        alert('Presença registrada com sucesso!')
+        alert(`Presença registrada com sucesso para ${nomeParaSalvar}!`)
 
-        // Limpa os campos após o sucesso
         setNome('')
         setSetor('')
         setEmpresa('')
@@ -298,31 +300,30 @@ export default function RegistrarPresenca() {
         {/* FORM */}
         <div className="space-y-5">
           <Campo
-            placeholder="Nome completo"
+            placeholder="Nome completo (ou parte dele)"
             value={nome}
             onChange={(e: any) => {
               setNome(e.target.value)
-              // Se a pessoa mudar o nome, resetamos a caixa de homônimos
               setHomonimos([])
               setFuncionarioIdCorreto('')
             }}
           />
 
-          {/* CAIXA DE SELEÇÃO DE HOMÔNIMOS (Só aparece se houver repetidos) */}
+          {/* CAIXA DE SELEÇÃO DE HOMÔNIMOS / APROXIMAÇÃO */}
           {homonimos.length > 1 && (
             <div className="bg-orange-500/10 border border-orange-500/50 rounded-2xl p-5 shadow-inner">
               <label className="block mb-3 font-semibold text-orange-400">
-                ⚠️ Encontramos pessoas com o mesmo nome. Por favor, confirme qual é você:
+                🔍 Encontramos mais de um resultado para sua busca. Selecione quem é você:
               </label>
               <select
                 value={funcionarioIdCorreto}
                 onChange={(e) => setFuncionarioIdCorreto(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 outline-none focus:border-orange-500 transition-all text-white"
               >
-                <option value="">Selecione seu setor e matrícula...</option>
+                <option value="">Selecione seu nome correto...</option>
                 {homonimos.map((h: any) => (
                   <option key={h.id} value={h.id}>
-                    {h.nome} - Setor: {h.setor} (Matrícula: {h.matricula || 'N/A'})
+                    {h.nome} - {h.setor} (Matrícula: {h.matricula || 'N/A'})
                   </option>
                 ))}
               </select>
