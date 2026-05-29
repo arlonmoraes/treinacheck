@@ -39,43 +39,19 @@ export default function Home() {
             </div>
           </div>
 
-          {/* MINI TUTORIAL (Substitui o Botão de Ajuda) */}
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-6">Como funciona?</h2>
+          {/* INSTRUÇÃO UNITÁRIA E DIRETA */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 md:p-10 shadow-xl flex flex-col md:flex-row items-center gap-8 hover:border-slate-700 transition-all">
+            <div className="w-24 h-24 bg-blue-500/20 text-blue-400 rounded-3xl flex items-center justify-center text-5xl shrink-0 shadow-inner">
+              📲
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* PASSO 1 */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-xl hover:border-slate-700 transition-all">
-                <div className="w-14 h-14 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
-                  1️⃣
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">Crie o Evento</h3>
-                <p className="text-slate-400">
-                  Cadastre um DDS, Reunião ou Treinamento definindo data, horário e se a selfie é obrigatória.
-                </p>
-              </div>
-
-              {/* PASSO 2 */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-xl hover:border-slate-700 transition-all">
-                <div className="w-14 h-14 bg-green-500/20 text-green-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
-                  2️⃣
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">Compartilhe o QR</h3>
-                <p className="text-slate-400">
-                  Mostre o QR Code na tela. A equipe escaneia com o celular e registra a presença na hora.
-                </p>
-              </div>
-
-              {/* PASSO 3 */}
-              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-xl hover:border-slate-700 transition-all">
-                <div className="w-14 h-14 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
-                  3️⃣
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">Acompanhe</h3>
-                <p className="text-slate-400">
-                  Veja tudo ao vivo no Dashboard e gere relatórios em PDF ou CSV de quem participou.
-                </p>
-              </div>
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-3">
+                Registro de Presença Simples
+              </h2>
+              <p className="text-slate-400 text-lg leading-relaxed">
+                Para registrar a presença da equipe, basta abrir um evento e pedir para os participantes <strong>escanearem o QR Code</strong> com a câmera do próprio celular. O check-in cai no sistema na mesma hora, sem complicação!
+              </p>
             </div>
           </div>
 
