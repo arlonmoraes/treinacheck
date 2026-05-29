@@ -68,4 +68,19 @@ export default function Home() {
 
               {/* PASSO 3 */}
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-xl hover:border-slate-700 transition-all">
-                <div className="w-14 h-14 bg-purple-500/20 text
+                <div className="w-14 h-14 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center text-3xl mb-6">
+                  3️⃣
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Acompanhe</h3>
+                <p className="text-slate-400">
+                  Veja tudo ao vivo no Dashboard e gere relatórios em PDF ou CSV de quem participou.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </LayoutAdmin>
+    </Protegido>
+  )
+}
