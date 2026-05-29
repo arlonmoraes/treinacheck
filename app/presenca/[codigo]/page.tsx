@@ -11,7 +11,7 @@ function calcularDistancia(
   lon2: number
 ) {
   const R = 6371
-
+// BUSCA FUNCIONÁRIO
   const dLat =
     ((lat2 - lat1) * Math.PI) / 180
 
@@ -255,19 +255,24 @@ export default function RegistrarPresenca() {
         )
 
         // BUSCA FUNCIONÁRIO
-        const {
-          data:
-            funcionariosEncontrados,
-        } = await supabase
-          .from('funcionarios')
-          .select('*')
-          .ilike(
-            'nome',
-            nome.trim()
-          )
+const nomeDigitado =
+  nome.trim().toLowerCase()
 
-        const funcionario =
-          funcionariosEncontrados?.[0]
+const {
+  data:
+    funcionariosEncontrados,
+} = await supabase
+  .from('funcionarios')
+  .select('*')
+
+const funcionario =
+  funcionariosEncontrados?.find(
+    (f: any) =>
+      f.nome
+        ?.trim()
+        .toLowerCase() ===
+      nomeDigitado
+  )
 
         setMensagem(
           'Registrando presença...'
