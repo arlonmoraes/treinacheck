@@ -39,19 +39,45 @@ export default function Home() {
             </div>
           </div>
 
-          {/* INSTRUÇÃO UNITÁRIA E DIRETA */}
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 md:p-10 shadow-xl flex flex-col md:flex-row items-center gap-8 hover:border-slate-700 transition-all">
-            <div className="w-24 h-24 bg-blue-500/20 text-blue-400 rounded-3xl flex items-center justify-center text-5xl shrink-0 shadow-inner">
-              📲
-            </div>
+          {/* PASSO A PASSO RÁPIDO */}
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-6">Como registrar presenças?</h2>
             
-            <div>
-              <h2 className="text-3xl font-bold text-white mb-3">
-                Registro de Presença Simples
-              </h2>
-              <p className="text-slate-400 text-lg leading-relaxed">
-                Para registrar a presença da equipe, basta abrir um evento e pedir para os participantes <strong>escanearem o QR Code</strong> com a câmera do próprio celular. O check-in cai no sistema na mesma hora, sem complicação!
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              {/* PASSO 1 */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-xl hover:border-slate-700 transition-all flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-2xl flex items-center justify-center text-3xl mb-5">
+                  📅
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">1. Abra o Evento</h3>
+                <p className="text-slate-400">
+                  Crie um evento novo ou abra um já existente na sua lista.
+                </p>
+              </div>
+
+              {/* PASSO 2 */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-xl hover:border-slate-700 transition-all flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-2xl flex items-center justify-center text-3xl mb-5">
+                  📲
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">2. Escaneie o QR Code</h3>
+                <p className="text-slate-400">
+                  Aponte a câmera do celular para o QR Code que aparece na tela.
+                </p>
+              </div>
+
+              {/* PASSO 3 */}
+              <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-xl hover:border-slate-700 transition-all flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-purple-500/20 text-purple-400 rounded-2xl flex items-center justify-center text-3xl mb-5">
+                  ✅
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">3. Presença Confirmada</h3>
+                <p className="text-slate-400">
+                  Preencha os dados no celular e a presença é registrada na hora!
+                </p>
+              </div>
+
             </div>
           </div>
 
