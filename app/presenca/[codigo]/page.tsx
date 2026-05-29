@@ -55,6 +55,10 @@ export default function RegistrarPresenca() {
   const [salvando, setSalvando] = useState(false)
   const [mensagem, setMensagem] = useState('')
 
+  // NOVOS ESTADOS PARA TRATAR NOMES REPETIDOS
+  const [homonimos, setHomonimos] = useState<any[]>([])
+  const [funcionarioIdCorreto, setFuncionarioIdCorreto] = useState('')
+
   useEffect(() => {
     if (!codigo) return
     buscarEvento()
@@ -109,8 +113,51 @@ export default function RegistrarPresenca() {
     }
 
     setSalvando(true)
+    setMensagem('Verificando funcionário...')
+
+    // 1. BUSCA DE FUNCIONÁRIO ANTECIPADA (Para checar homônimos)
+    const nomeDigitado = nome.trim().toLowerCase()
+
+    const { data: funcionariosEncontrados } = await supabase
+      .from('funcionarios')
+      .select('*')
+
+    const correspondentes =
+      funcionariosEncontrados?.filter(
+        (f: any) => f.nome?.trim().toLowerCase() === nomeDigitado
+      ) || []
+
+    let idParaSalvar = null
+    let matriculaParaSalvar = null
+
+    // SE ACHOU MAIS DE UM NOME IGUAL
+    if (correspondentes.length > 1) {
+      // Se a pessoa ainda não escolheu quem ela é na caixinha
+      if (!funcionarioIdCorreto) {
+        setHomonimos(correspondentes)
+        setSalvando(false)
+        setMensagem('')
+        // Pausa a execução aqui para a pessoa escolher na tela
+        return 
+      } else {
+        // Se ela já escolheu na caixinha, pegamos os dados corretos
+        const escolhido = correspondentes.find(
+          (f: any) => f.id === funcionarioIdCorreto
+        )
+        if (escolhido) {
+          idParaSalvar = escolhido.id
+          matriculaParaSalvar = escolhido.matricula
+        }
+      }
+    } else if (correspondentes.length === 1) {
+      // Se achou apenas 1, segue normal
+      idParaSalvar = correspondentes[0].id
+      matriculaParaSalvar = correspondentes[0].matricula
+    }
+
     setMensagem('Validando localização...')
 
+    // 2. VALIDAÇÃO DE GPS E UPLOAD DE FOTO (Só roda depois do nome estar 100% certo)
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const latitudeUsuario = pos.coords.latitude
@@ -156,19 +203,6 @@ export default function RegistrarPresenca() {
           fotoUrl = publicUrl
         }
 
-        setMensagem('Buscando funcionário...')
-
-        // BUSCA FUNCIONÁRIO
-        const nomeDigitado = nome.trim().toLowerCase()
-
-        const { data: funcionariosEncontrados } = await supabase
-          .from('funcionarios')
-          .select('*')
-
-        const funcionario = funcionariosEncontrados?.find(
-          (f: any) => f.nome?.trim().toLowerCase() === nomeDigitado
-        )
-
         setMensagem('Registrando presença...')
 
         /* HORÁRIO BRASIL */
@@ -178,21 +212,18 @@ export default function RegistrarPresenca() {
           })
         )
 
-        // INSERT CORRIGIDO: Tratando nulos corretamente e removendo strings vazias
-        const { error } = await supabase
-          .from('presencas')
-          .insert([
-            {
-              evento_id: evento.id,
-              funcionario_id: funcionario?.id || null,
-              nome: nome.trim(),
-              matricula: funcionario?.matricula || null,
-              setor: setor.trim(),
-              empresa: empresa === 'Outros' ? empresaOutra.trim() : empresa,
-              foto_url: fotoUrl || null,
-              data_hora: agoraBrasil.toISOString(),
-            },
-          ])
+        const { error } = await supabase.from('presencas').insert([
+          {
+            evento_id: evento.id,
+            funcionario_id: idParaSalvar || null,
+            nome: nome.trim(),
+            matricula: matriculaParaSalvar || null,
+            setor: setor.trim(),
+            empresa: empresa === 'Outros' ? empresaOutra.trim() : empresa,
+            foto_url: fotoUrl || null,
+            data_hora: agoraBrasil.toISOString(),
+          },
+        ])
 
         setSalvando(false)
 
@@ -204,12 +235,15 @@ export default function RegistrarPresenca() {
 
         alert('Presença registrada com sucesso!')
 
+        // Limpa os campos após o sucesso
         setNome('')
         setSetor('')
         setEmpresa('')
         setEmpresaOutra('')
         setFoto(null)
         setMensagem('')
+        setHomonimos([])
+        setFuncionarioIdCorreto('')
       },
       () => {
         setSalvando(false)
@@ -266,8 +300,34 @@ export default function RegistrarPresenca() {
           <Campo
             placeholder="Nome completo"
             value={nome}
-            onChange={(e: any) => setNome(e.target.value)}
+            onChange={(e: any) => {
+              setNome(e.target.value)
+              // Se a pessoa mudar o nome, resetamos a caixa de homônimos
+              setHomonimos([])
+              setFuncionarioIdCorreto('')
+            }}
           />
+
+          {/* CAIXA DE SELEÇÃO DE HOMÔNIMOS (Só aparece se houver repetidos) */}
+          {homonimos.length > 1 && (
+            <div className="bg-orange-500/10 border border-orange-500/50 rounded-2xl p-5 shadow-inner">
+              <label className="block mb-3 font-semibold text-orange-400">
+                ⚠️ Encontramos pessoas com o mesmo nome. Por favor, confirme qual é você:
+              </label>
+              <select
+                value={funcionarioIdCorreto}
+                onChange={(e) => setFuncionarioIdCorreto(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 outline-none focus:border-orange-500 transition-all text-white"
+              >
+                <option value="">Selecione seu setor e matrícula...</option>
+                {homonimos.map((h: any) => (
+                  <option key={h.id} value={h.id}>
+                    {h.nome} - Setor: {h.setor} (Matrícula: {h.matricula || 'N/A'})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <Campo
             placeholder="Setor"
@@ -323,7 +383,7 @@ export default function RegistrarPresenca() {
             disabled={salvando}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all py-4 rounded-2xl text-lg font-bold shadow-2xl"
           >
-            {salvando ? 'Registrando...' : 'Confirmar presença'}
+            {salvando ? 'Processando...' : 'Confirmar presença'}
           </button>
         </div>
       </div>
