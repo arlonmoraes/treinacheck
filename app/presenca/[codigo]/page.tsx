@@ -11,7 +11,7 @@ function calcularDistancia(
   lon2: number
 ) {
   const R = 6371
-// BUSCA FUNCIONÁRIO
+
   const dLat =
     ((lat2 - lat1) * Math.PI) / 180
 
@@ -255,24 +255,24 @@ export default function RegistrarPresenca() {
         )
 
         // BUSCA FUNCIONÁRIO
-const nomeDigitado =
-  nome.trim().toLowerCase()
+        const nomeDigitado =
+          nome.trim().toLowerCase()
 
-const {
-  data:
-    funcionariosEncontrados,
-} = await supabase
-  .from('funcionarios')
-  .select('*')
+        const {
+          data:
+            funcionariosEncontrados,
+        } = await supabase
+          .from('funcionarios')
+          .select('*')
 
-const funcionario =
-  funcionariosEncontrados?.find(
-    (f: any) =>
-      f.nome
-        ?.trim()
-        .toLowerCase() ===
-      nomeDigitado
-  )
+        const funcionario =
+          funcionariosEncontrados?.find(
+            (f: any) =>
+              f.nome
+                ?.trim()
+                .toLowerCase() ===
+              nomeDigitado
+          )
 
         setMensagem(
           'Registrando presença...'
@@ -290,33 +290,37 @@ const funcionario =
         )
 
         const { error } =
-  await supabase
-    .from('presencas')
-    .insert([
-      {
-        evento_id:
-          evento.id,
+          await supabase
+            .from('presencas')
+            .insert([
+              {
+                evento_id:
+                  evento.id,
 
-        nome,
+                funcionario_id:
+                  funcionario?.id ||
+                  null,
 
-        matricula:
-          funcionario?.matricula ||
-          '',
+                nome,
 
-        setor,
+                matricula:
+                  funcionario?.matricula ||
+                  '',
 
-        empresa:
-          empresa ===
-          'Outros'
-            ? empresaOutra
-            : empresa,
+                setor,
 
-        foto_url: fotoUrl,
+                empresa:
+                  empresa ===
+                  'Outros'
+                    ? empresaOutra
+                    : empresa,
 
-        data_hora:
-          agoraBrasil.toISOString(),
-      },
-    ])
+                foto_url: fotoUrl,
+
+                data_hora:
+                  agoraBrasil.toISOString(),
+              },
+            ])
 
         setSalvando(false)
 
