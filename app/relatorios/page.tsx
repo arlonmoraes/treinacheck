@@ -16,6 +16,13 @@ type Evento = {
   codigo_evento: string
 }
 
+// FUNÇÃO PARA FORMATAR A DATA
+function formatarData(dataString: string) {
+  if (!dataString) return ''
+  const [ano, mes, dia] = dataString.split('-')
+  return `${dia}/${mes}/${ano}`
+}
+
 export default function Relatorios() {
   const [eventos, setEventos] = useState<Evento[]>([])
   const [eventosSelecionados, setEventosSelecionados] = useState<string[]>([])
@@ -64,9 +71,9 @@ export default function Relatorios() {
 
       // 🔄 Fazendo o Join com a tabela funcionarios
       const { data, error } = await supabase
-  .from('presencas')
-  .select('*')
-  .in('evento_id', eventosSelecionados)
+        .from('presencas')
+        .select('*')
+        .in('evento_id', eventosSelecionados)
 
       if (error) {
         console.log(error)
@@ -91,89 +98,7 @@ export default function Relatorios() {
 
   // CSV
   function exportarCSV() {
-  const linhas = [
-    [
-      'Nome',
-      'Matrícula',
-      'Setor',
-      'Empresa',
-      'Data/Hora',
-    ],
-
-    ...presencas.map((p) => [
-      p.nome || '',
-      p.matricula || '',
-      p.setor || '',
-      p.empresa || '',
-
-      p.data_hora
-        ? formatarDataHora(
-            p.data_hora
-          )
-        : '',
-    ]),
-  ]
-
-  const csv = linhas
-    .map((linha) =>
-      linha
-        .map((c) => `"${c}"`)
-        .join(';')
-    )
-    .join('\n')
-
-  const blob = new Blob([csv], {
-    type: 'text/csv;charset=utf-8;',
-  })
-
-  const url =
-    window.URL.createObjectURL(
-      blob
-    )
-
-  const link =
-    document.createElement('a')
-
-  link.href = url
-
-  link.download =
-    'relatorio.csv'
-
-  document.body.appendChild(link)
-
-  link.click()
-
-  link.remove()
-
-  window.URL.revokeObjectURL(url)
-}
-
-  // PDF
-  function exportarPDF() {
-  const doc = new jsPDF()
-
-  doc.setFontSize(20)
-
-  doc.text(
-    'Relatório de Presenças',
-    14,
-    20
-  )
-
-  doc.setFontSize(11)
-
-  doc.text(
-    `Gerado em: ${formatarDataHora(
-      new Date().toISOString()
-    )}`,
-    14,
-    28
-  )
-
-  autoTable(doc, {
-    startY: 40,
-
-    head: [
+    const linhas = [
       [
         'Nome',
         'Matrícula',
@@ -181,27 +106,109 @@ export default function Relatorios() {
         'Empresa',
         'Data/Hora',
       ],
-    ],
 
-    body: presencas.map((p) => [
-      p.nome || '',
+      ...presencas.map((p) => [
+        p.nome || '',
+        p.matricula || '',
+        p.setor || '',
+        p.empresa || '',
 
-      p.matricula || '',
+        p.data_hora
+          ? formatarDataHora(
+              p.data_hora
+            )
+          : '',
+      ]),
+    ]
 
-      p.setor || '',
+    const csv = linhas
+      .map((linha) =>
+        linha
+          .map((c) => `"${c}"`)
+          .join(';')
+      )
+      .join('\n')
 
-      p.empresa || '',
+    const blob = new Blob([csv], {
+      type: 'text/csv;charset=utf-8;',
+    })
 
-      p.data_hora
-        ? formatarDataHora(
-            p.data_hora
-          )
-        : '',
-    ]),
-  })
+    const url =
+      window.URL.createObjectURL(
+        blob
+      )
 
-  doc.save('relatorio.pdf')
-}
+    const link =
+      document.createElement('a')
+
+    link.href = url
+
+    link.download =
+      'relatorio.csv'
+
+    document.body.appendChild(link)
+
+    link.click()
+
+    link.remove()
+
+    window.URL.revokeObjectURL(url)
+  }
+
+  // PDF
+  function exportarPDF() {
+    const doc = new jsPDF()
+
+    doc.setFontSize(20)
+
+    doc.text(
+      'Relatório de Presenças',
+      14,
+      20
+    )
+
+    doc.setFontSize(11)
+
+    doc.text(
+      `Gerado em: ${formatarDataHora(
+        new Date().toISOString()
+      )}`,
+      14,
+      28
+    )
+
+    autoTable(doc, {
+      startY: 40,
+
+      head: [
+        [
+          'Nome',
+          'Matrícula',
+          'Setor',
+          'Empresa',
+          'Data/Hora',
+        ],
+      ],
+
+      body: presencas.map((p) => [
+        p.nome || '',
+
+        p.matricula || '',
+
+        p.setor || '',
+
+        p.empresa || '',
+
+        p.data_hora
+          ? formatarDataHora(
+              p.data_hora
+            )
+          : '',
+      ]),
+    })
+
+    doc.save('relatorio.pdf')
+  }
 
   if (loading) {
     return <div className="p-10 text-white">Carregando...</div>
@@ -287,7 +294,7 @@ export default function Relatorios() {
               <tbody>
                 {eventosFiltrados.map((e) => (
                   <tr key={e.id} className="border-t border-slate-800">
-                    <td>
+                    <td className="py-3">
                       <input
                         type="checkbox"
                         checked={eventosSelecionados.includes(e.id)}
@@ -300,7 +307,8 @@ export default function Relatorios() {
                     </td>
                     <td>{e.titulo}</td>
                     <td>{e.tipo}</td>
-                    <td>{e.data}</td>
+                    {/* DATA COM A NOVA FORMATAÇÃO APLICADA AQUI 👇 */}
+                    <td>{formatarData(e.data)}</td>
                   </tr>
                 ))}
               </tbody>
