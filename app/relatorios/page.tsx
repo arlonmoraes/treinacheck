@@ -103,12 +103,11 @@ export default function Relatorios() {
         'Matrícula',
         'Setor',
         'Empresa',
-        'Evento', // NOVA COLUNA
+        'Evento',
         'Data/Hora',
       ],
 
       ...presencas.map((p) => {
-        // Busca o nome do evento correspondente ao ID
         const eventoReferente = eventos.find(e => e.id === p.evento_id)
         const nomeEvento = eventoReferente ? eventoReferente.titulo : 'Desconhecido'
 
@@ -117,7 +116,7 @@ export default function Relatorios() {
           p.matricula || '',
           p.setor || '',
           p.empresa || '',
-          nomeEvento, // NOME DO EVENTO INSERIDO AQUI
+          nomeEvento,
           p.data_hora ? formatarDataHora(p.data_hora) : '',
         ]
       }),
@@ -131,7 +130,8 @@ export default function Relatorios() {
       )
       .join('\n')
 
-    const blob = new Blob([csv], {
+    // 🔴 A MÁGICA ACONTECE AQUI: Adicionamos '\uFEFF' antes do csv
+    const blob = new Blob(['\uFEFF' + csv], {
       type: 'text/csv;charset=utf-8;',
     })
 
