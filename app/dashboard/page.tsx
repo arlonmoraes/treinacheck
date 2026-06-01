@@ -344,4 +344,84 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {ranking.length
+            {ranking.length === 0 && (
+              <div className="text-slate-400">
+                Nenhuma presença registrada
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {ranking.map((p, index) => (
+                <div
+                  key={index}
+                  className="
+                    bg-slate-800
+                    rounded-2xl
+                    p-5
+                    flex
+                    items-center
+                    justify-between
+                  "
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="
+                        w-12
+                        h-12
+                        rounded-full
+                        bg-yellow-500
+                        text-black
+                        font-bold
+                        flex
+                        items-center
+                        justify-center
+                      "
+                    >
+                      #{index + 1}
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-bold">{p.nome}</h3>
+                      <p className="text-slate-400 text-sm">Participante</p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <h2 className="text-3xl font-bold">{p.total}</h2>
+                    <p className="text-slate-400 text-sm">presenças</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </LayoutAdmin>
+    </Protegido>
+  )
+}
+
+/* CARD */
+function Card({ titulo, valor, cor, icone }: any) {
+  return (
+    <div
+      className={`
+        bg-gradient-to-br
+        ${cor}
+        rounded-3xl
+        p-6
+        shadow-2xl
+        hover:scale-[1.02]
+        transition-all
+      `}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-white/80 text-sm">{titulo}</p>
+          <h2 className="text-5xl font-bold mt-3">{valor}</h2>
+        </div>
+
+        <div className="text-5xl">{icone}</div>
+      </div>
+    </div>
+  )
+}
