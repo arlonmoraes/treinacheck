@@ -69,7 +69,6 @@ export default function Relatorios() {
         return
       }
 
-      // 🔄 Fazendo o Join com a tabela funcionarios
       const { data, error } = await supabase
         .from('presencas')
         .select('*')
@@ -104,21 +103,24 @@ export default function Relatorios() {
         'Matrícula',
         'Setor',
         'Empresa',
+        'Evento', // NOVA COLUNA
         'Data/Hora',
       ],
 
-      ...presencas.map((p) => [
-        p.nome || '',
-        p.matricula || '',
-        p.setor || '',
-        p.empresa || '',
+      ...presencas.map((p) => {
+        // Busca o nome do evento correspondente ao ID
+        const eventoReferente = eventos.find(e => e.id === p.evento_id)
+        const nomeEvento = eventoReferente ? eventoReferente.titulo : 'Desconhecido'
 
-        p.data_hora
-          ? formatarDataHora(
-              p.data_hora
-            )
-          : '',
-      ]),
+        return [
+          p.nome || '',
+          p.matricula || '',
+          p.setor || '',
+          p.empresa || '',
+          nomeEvento, // NOME DO EVENTO INSERIDO AQUI
+          p.data_hora ? formatarDataHora(p.data_hora) : '',
+        ]
+      }),
     ]
 
     const csv = linhas
@@ -133,25 +135,13 @@ export default function Relatorios() {
       type: 'text/csv;charset=utf-8;',
     })
 
-    const url =
-      window.URL.createObjectURL(
-        blob
-      )
-
-    const link =
-      document.createElement('a')
-
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
     link.href = url
-
-    link.download =
-      'relatorio.csv'
-
+    link.download = 'relatorio-presencas.csv'
     document.body.appendChild(link)
-
     link.click()
-
     link.remove()
-
     window.URL.revokeObjectURL(url)
   }
 
@@ -160,54 +150,40 @@ export default function Relatorios() {
     const doc = new jsPDF()
 
     doc.setFontSize(20)
-
-    doc.text(
-      'Relatório de Presenças',
-      14,
-      20
-    )
+    doc.text('Relatório de Presenças', 14, 20)
 
     doc.setFontSize(11)
-
-    doc.text(
-      `Gerado em: ${formatarDataHora(
-        new Date().toISOString()
-      )}`,
-      14,
-      28
-    )
+    doc.text(`Gerado em: ${formatarDataHora(new Date().toISOString())}`, 14, 28)
 
     autoTable(doc, {
       startY: 40,
-
       head: [
         [
           'Nome',
           'Matrícula',
           'Setor',
           'Empresa',
+          'Evento', // NOVA COLUNA
           'Data/Hora',
         ],
       ],
+      body: presencas.map((p) => {
+        // Busca o nome do evento correspondente ao ID
+        const eventoReferente = eventos.find(e => e.id === p.evento_id)
+        const nomeEvento = eventoReferente ? eventoReferente.titulo : 'Desconhecido'
 
-      body: presencas.map((p) => [
-        p.nome || '',
-
-        p.matricula || '',
-
-        p.setor || '',
-
-        p.empresa || '',
-
-        p.data_hora
-          ? formatarDataHora(
-              p.data_hora
-            )
-          : '',
-      ]),
+        return [
+          p.nome || '',
+          p.matricula || '',
+          p.setor || '',
+          p.empresa || '',
+          nomeEvento, // NOME DO EVENTO INSERIDO AQUI
+          p.data_hora ? formatarDataHora(p.data_hora) : '',
+        ]
+      }),
     })
 
-    doc.save('relatorio.pdf')
+    doc.save('relatorio-presencas.pdf')
   }
 
   if (loading) {
@@ -307,7 +283,6 @@ export default function Relatorios() {
                     </td>
                     <td>{e.titulo}</td>
                     <td>{e.tipo}</td>
-                    {/* DATA COM A NOVA FORMATAÇÃO APLICADA AQUI 👇 */}
                     <td>{formatarData(e.data)}</td>
                   </tr>
                 ))}
