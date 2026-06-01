@@ -35,9 +35,16 @@ export default function Relatorios() {
   }, [])
 
   async function buscarEventos() {
+    // 1. DESCOBRE QUEM ESTÁ LOGADO
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    // 2. BUSCA OS EVENTOS APENAS DESSE USUÁRIO
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
+      .eq('usuario_id', user.id) // <-- O FILTRO DE PRIVACIDADE AQUI
       .order('data', { ascending: false })
 
     if (error) {
@@ -130,7 +137,7 @@ export default function Relatorios() {
       )
       .join('\n')
 
-    // 🔴 A MÁGICA ACONTECE AQUI: Adicionamos '\uFEFF' antes do csv
+    // BOM adicionado para acentos corretos no Excel
     const blob = new Blob(['\uFEFF' + csv], {
       type: 'text/csv;charset=utf-8;',
     })
@@ -163,12 +170,11 @@ export default function Relatorios() {
           'Matrícula',
           'Setor',
           'Empresa',
-          'Evento', // NOVA COLUNA
+          'Evento', 
           'Data/Hora',
         ],
       ],
       body: presencas.map((p) => {
-        // Busca o nome do evento correspondente ao ID
         const eventoReferente = eventos.find(e => e.id === p.evento_id)
         const nomeEvento = eventoReferente ? eventoReferente.titulo : 'Desconhecido'
 
@@ -177,7 +183,7 @@ export default function Relatorios() {
           p.matricula || '',
           p.setor || '',
           p.empresa || '',
-          nomeEvento, // NOME DO EVENTO INSERIDO AQUI
+          nomeEvento, 
           p.data_hora ? formatarDataHora(p.data_hora) : '',
         ]
       }),

@@ -9,59 +9,30 @@ import { useRouter } from 'next/navigation'
 export default function NovoEvento() {
   const router = useRouter()
 
-  const [titulo, setTitulo] =
-    useState('')
-
-  const [tipo, setTipo] =
-    useState('DDS')
-
-  const [data, setData] =
-    useState('')
-
-  const [
-    horaInicio,
-    setHoraInicio,
-  ] = useState('')
-
-  const [horaFim, setHoraFim] =
-    useState('')
-
-  const [
-    instrutor,
-    setInstrutor,
-  ] = useState('')
-
-  const [
-    exigirSelfie,
-    setExigirSelfie,
-  ] = useState(true)
-
-  const [salvando, setSalvando] =
-    useState(false)
+  const [titulo, setTitulo] = useState('')
+  const [tipo, setTipo] = useState('DDS')
+  const [data, setData] = useState('')
+  const [horaInicio, setHoraInicio] = useState('')
+  const [horaFim, setHoraFim] = useState('')
+  const [instrutor, setInstrutor] = useState('')
+  const [exigirSelfie, setExigirSelfie] = useState(true)
+  const [salvando, setSalvando] = useState(false)
 
   // PREFIXOS DOS EVENTOS
-  function gerarPrefixo(
-    tipo: string
-  ) {
+  function gerarPrefixo(tipo: string) {
     switch (tipo) {
       case 'DDS':
         return 'DDS'
-
       case 'DDQ':
         return 'DDQ'
-
       case 'Treinamento':
         return 'TRE'
-
       case 'Reunião':
         return 'REU'
-
       case 'Integração':
         return 'INT'
-
       case 'Gestão de Mudança':
         return 'GDM'
-
       default:
         return 'EVT'
     }
@@ -82,7 +53,16 @@ export default function NovoEvento() {
 
     setSalvando(true)
 
-    // BUSCA EVENTOS DO MESMO TIPO
+    // 1. DESCOBRE QUEM ESTÁ LOGADO
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      alert('Você precisa estar logado para criar um evento!')
+      setSalvando(false)
+      return
+    }
+
+    // 2. BUSCA EVENTOS DO MESMO TIPO CRIADOS POR ESTE USUÁRIO
     const {
       data: eventosTipo,
       error: erroBusca,
@@ -90,82 +70,55 @@ export default function NovoEvento() {
       .from('eventos')
       .select('id')
       .eq('tipo', tipo)
+      .eq('usuario_id', user.id) // Garante que a numeração seja individual por conta
 
     if (erroBusca) {
       console.log(erroBusca)
-
       setSalvando(false)
-
-      alert(
-        'Erro ao gerar código do evento'
-      )
-
+      alert('Erro ao gerar código do evento')
       return
     }
 
     // NUMERO SEQUENCIAL
-    const numero =
-      (eventosTipo?.length || 0) + 1
+    const numero = (eventosTipo?.length || 0) + 1
 
     // PREFIXO
-    const prefixo =
-      gerarPrefixo(tipo)
+    const prefixo = gerarPrefixo(tipo)
 
     // CODIGO FINAL
-    const codigoEvento =
-      `${prefixo}-${String(
-        numero
-      ).padStart(3, '0')}`
+    const codigoEvento = `${prefixo}-${String(numero).padStart(3, '0')}`
 
     // CODIGO QR RANDOM
-    const codigo =
-      crypto.randomUUID()
+    const codigo = crypto.randomUUID()
 
-    // INSERT
-    const { error } =
-      await supabase
-        .from('eventos')
-        .insert([
-          {
-            titulo,
-
-            tipo,
-
-            codigo_evento:
-              codigoEvento,
-
-            data,
-
-            hora_inicio:
-              horaInicio,
-
-            hora_fim: horaFim,
-
-            instrutor,
-
-            codigo,
-
-            status: 'Aberto',
-
-            exigir_selfie:
-              exigirSelfie,
-          },
-        ])
+    // 3. INSERT COM O ID DO USUÁRIO
+    const { error } = await supabase
+      .from('eventos')
+      .insert([
+        {
+          usuario_id: user.id, // VINCULA O EVENTO AO USUÁRIO
+          titulo,
+          tipo,
+          codigo_evento: codigoEvento,
+          data,
+          hora_inicio: horaInicio,
+          hora_fim: horaFim,
+          instrutor,
+          codigo,
+          status: 'Aberto',
+          exigir_selfie: exigirSelfie,
+        },
+      ])
 
     setSalvando(false)
 
     if (error) {
       console.log(error)
-
       alert('Erro ao criar evento')
-
       return
     }
 
-    alert(
-      `Evento criado: ${codigoEvento}`
-    )
-
+    alert(`Evento criado: ${codigoEvento}`)
     router.push('/eventos')
   }
 
@@ -199,11 +152,7 @@ export default function NovoEvento() {
             <Campo
               titulo="Título"
               value={titulo}
-              onChange={(e: any) =>
-                setTitulo(
-                  e.target.value
-                )
-              }
+              onChange={(e: any) => setTitulo(e.target.value)}
             />
 
             {/* TIPO */}
@@ -214,11 +163,7 @@ export default function NovoEvento() {
 
               <select
                 value={tipo}
-                onChange={(e) =>
-                  setTipo(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setTipo(e.target.value)}
                 className="
                   w-full
                   bg-slate-800
@@ -229,29 +174,12 @@ export default function NovoEvento() {
                   text-white
                 "
               >
-                <option value="DDS">
-                  DDS
-                </option>
-
-                <option value="DDQ">
-                  DDQ
-                </option>
-
-                <option value="Treinamento">
-                  Treinamento
-                </option>
-
-                <option value="Reunião">
-                  Reunião
-                </option>
-
-                <option value="Integração">
-                  Integração
-                </option>
-
-                <option value="Gestão de Mudança">
-                  Gestão de Mudança
-                </option>
+                <option value="DDS">DDS</option>
+                <option value="DDQ">DDQ</option>
+                <option value="Treinamento">Treinamento</option>
+                <option value="Reunião">Reunião</option>
+                <option value="Integração">Integração</option>
+                <option value="Gestão de Mudança">Gestão de Mudança</option>
               </select>
             </div>
 
@@ -260,9 +188,7 @@ export default function NovoEvento() {
               titulo="Data"
               type="date"
               value={data}
-              onChange={(e: any) =>
-                setData(e.target.value)
-              }
+              onChange={(e: any) => setData(e.target.value)}
             />
 
             {/* HORARIOS */}
@@ -271,22 +197,14 @@ export default function NovoEvento() {
                 titulo="Hora início"
                 type="time"
                 value={horaInicio}
-                onChange={(e: any) =>
-                  setHoraInicio(
-                    e.target.value
-                  )
-                }
+                onChange={(e: any) => setHoraInicio(e.target.value)}
               />
 
               <Campo
                 titulo="Hora fim"
                 type="time"
                 value={horaFim}
-                onChange={(e: any) =>
-                  setHoraFim(
-                    e.target.value
-                  )
-                }
+                onChange={(e: any) => setHoraFim(e.target.value)}
               />
             </div>
 
@@ -294,25 +212,15 @@ export default function NovoEvento() {
             <Campo
               titulo="Responsável"
               value={instrutor}
-              onChange={(e: any) =>
-                setInstrutor(
-                  e.target.value
-                )
-              }
+              onChange={(e: any) => setInstrutor(e.target.value)}
             />
 
             {/* SELFIE */}
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                checked={
-                  exigirSelfie
-                }
-                onChange={(e) =>
-                  setExigirSelfie(
-                    e.target.checked
-                  )
-                }
+                checked={exigirSelfie}
+                onChange={(e) => setExigirSelfie(e.target.checked)}
               />
 
               <span className="text-white">
@@ -337,9 +245,7 @@ export default function NovoEvento() {
                 text-white
               "
             >
-              {salvando
-                ? 'Criando...'
-                : 'Criar Evento'}
+              {salvando ? 'Criando...' : 'Criar Evento'}
             </button>
           </div>
         </div>
@@ -349,10 +255,7 @@ export default function NovoEvento() {
 }
 
 /* CAMPO */
-function Campo({
-  titulo,
-  ...props
-}: any) {
+function Campo({ titulo, ...props }: any) {
   return (
     <div>
       <label className="block mb-2 text-sm text-slate-300">

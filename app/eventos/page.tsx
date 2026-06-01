@@ -15,17 +15,14 @@ type Evento = {
   codigo: string
   codigo_evento?: string
   status?: string
-  hora_fim?: string // Adicionado para podermos pegar o horário
+  hora_fim?: string
 }
 
 export default function Eventos() {
   const [eventos, setEventos] = useState<Evento[]>([])
   const [busca, setBusca] = useState('')
-
-  /* FILTROS */
   const [filtros, setFiltros] = useState<string[]>([])
 
-  /* TIPOS */
   const tiposEvento = [
     'DDS',
     'DDQ',
@@ -40,9 +37,16 @@ export default function Eventos() {
   }, [])
 
   async function buscarEventos() {
+    // 1. DESCOBRE QUEM ESTÁ LOGADO
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    // 2. BUSCA EVENTOS FILTRADOS POR QUEM ESTÁ LOGADO
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
+      .eq('usuario_id', user.id) // <-- O FILTRO DE PRIVACIDADE
       .order('created_at', {
         ascending: false,
       })
@@ -56,7 +60,6 @@ export default function Eventos() {
     setEventos(data || [])
   }
 
-  /* TOGGLE FILTRO */
   function toggleFiltro(tipo: string) {
     setFiltros((atual) => {
       if (atual.includes(tipo)) {
@@ -71,7 +74,6 @@ export default function Eventos() {
 
     if (!confirmar) return
 
-    /* REMOVE PRESENÇAS */
     const { error: erroPresencas } = await supabase
       .from('presencas')
       .delete()
@@ -83,7 +85,6 @@ export default function Eventos() {
       return
     }
 
-    /* REMOVE EVENTO */
     const { error } = await supabase
       .from('eventos')
       .delete()
@@ -96,19 +97,15 @@ export default function Eventos() {
     }
 
     alert('Evento excluído com sucesso!')
-
     buscarEventos()
   }
 
-  /* FILTRO */
   const eventosFiltrados = eventos.filter((e) => {
     const texto = busca.toLowerCase()
-
     const passouBusca =
       e.titulo.toLowerCase().includes(texto) ||
       e.tipo.toLowerCase().includes(texto) ||
       (e.codigo_evento || '').toLowerCase().includes(texto)
-
     const passouFiltro = filtros.length === 0 || filtros.includes(e.tipo)
 
     return passouBusca && passouFiltro
@@ -167,7 +164,6 @@ export default function Eventos() {
           <div className="flex flex-wrap gap-3">
             {tiposEvento.map((tipo) => {
               const ativo = filtros.includes(tipo)
-
               return (
                 <button
                   key={tipo}
@@ -213,8 +209,6 @@ export default function Eventos() {
                     <h2 className="text-2xl font-bold">{evento.titulo}</h2>
                     <p className="text-slate-400 mt-1">{evento.tipo}</p>
                   </div>
-
-                  {/* Passamos o evento inteiro para o StatusBadge poder ler a hora */}
                   <StatusBadge evento={evento} />
                 </div>
 
@@ -224,9 +218,7 @@ export default function Eventos() {
                     titulo="🔖 Código Evento"
                     valor={evento.codigo_evento || 'Sem código'}
                   />
-
                   <Info titulo="📅 Data" valor={evento.data} />
-
                   <Info titulo="👨‍🏫 Responsável" valor={evento.instrutor} />
                 </div>
 
@@ -291,15 +283,12 @@ function Info({ titulo, valor }: any) {
 
 /* STATUS ATUALIZADO COM VERIFICAÇÃO DE HORA */
 function StatusBadge({ evento }: any) {
-  // Define o status padrão como o que vem do banco
   let statusAtual = evento.status || 'Aberto'
 
-  // Verifica se não foi encerrado manualmente e valida a hora
   if (statusAtual !== 'Encerrado' && evento.data && evento.hora_fim) {
     const agora = new Date()
     const dataHoraFim = new Date(`${evento.data}T${evento.hora_fim}`)
 
-    // Se o momento atual for maior que a data e hora do fim do evento, força como Encerrado
     if (agora > dataHoraFim) {
       statusAtual = 'Encerrado'
     }
