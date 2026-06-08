@@ -423,12 +423,12 @@ setPresencas(lista || [])
                   Todas empresas
                 </option>
 
-                <option value="BBA">
-                  BBA
+                <option value="JAC">
+                  JAC
                 </option>
 
-                <option value="SUMA">
-                  SUMA
+                <option value="BEC">
+                  BEC
                 </option>
 
                 <option value="Outros">
