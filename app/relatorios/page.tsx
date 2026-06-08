@@ -229,6 +229,7 @@ export default function Relatorios() {
               <option value="Reunião">Reunião</option>
               <option value="Integração">Integração</option>
               <option value="Gestão de Mudança">Gestão de Mudança</option>
+	      <option value="Ginástica Laboral">Ginástica Laboral</option>
             </select>
           </div>
 

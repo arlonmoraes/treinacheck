@@ -30,6 +30,7 @@ export default function Eventos() {
     'Reunião',
     'Integração',
     'Gestão de mudança',
+    'Ginástica Laboral',
   ]
 
   useEffect(() => {

@@ -33,6 +33,8 @@ export default function NovoEvento() {
         return 'INT'
       case 'Gestão de Mudança':
         return 'GDM'
+      case 'Ginástica Laboral':
+	return 'LAB'
       default:
         return 'EVT'
     }
@@ -180,6 +182,7 @@ export default function NovoEvento() {
                 <option value="Reunião">Reunião</option>
                 <option value="Integração">Integração</option>
                 <option value="Gestão de Mudança">Gestão de Mudança</option>
+		<option value="Ginástica Laboral">Ginástica Laboral</option>
               </select>
             </div>
 
