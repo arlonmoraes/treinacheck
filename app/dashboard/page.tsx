@@ -71,15 +71,22 @@ export default function Dashboard() {
 
     setTotalEventos(eventos?.length || 0)
 
-    // Aproveitando para corrigir a lógica de abertos que fizemos antes
+    // NOVA LÓGICA DE EVENTOS ABERTOS (Exclui os "Planejados")
     const abertos =
       eventos?.filter((e) => {
         if (e.status === 'Encerrado') return false
         
-        const agora = new Date()
-        const fim = new Date(`${e.data}T${e.hora_fim}`)
+        if (e.data && e.hora_inicio && e.hora_fim) {
+          const agora = new Date()
+          const inicio = new Date(`${e.data}T${e.hora_inicio}`)
+          const fim = new Date(`${e.data}T${e.hora_fim}`)
+          
+          // Só é "Aberto" se o momento atual estiver ENTRE o início e o fim
+          return agora >= inicio && agora <= fim
+        }
         
-        return agora <= fim
+        // Se o evento não tem horário configurado, mantém como aberto por padrão
+        return true
       }) || []
 
     setEventosAbertos(abertos.length)
@@ -87,13 +94,14 @@ export default function Dashboard() {
     /* TIPOS EVENTOS */
     const dds = eventos?.filter((e) => e.tipo === 'DDS').length || 0
     const ddq = eventos?.filter((e) => e.tipo === 'DDQ').length || 0
-    const treinamentos =
-      eventos?.filter((e) => e.tipo === 'Treinamento').length || 0
+    const treinamentos = eventos?.filter((e) => e.tipo === 'Treinamento').length || 0
+    const laboral = eventos?.filter((e) => e.tipo === 'Ginástica Laboral').length || 0 // <-- ADICIONADO AQUI
 
     setDadosEventos([
       { nome: 'DDS', total: dds },
       { nome: 'DDQ', total: ddq },
       { nome: 'Treinamento', total: treinamentos },
+      { nome: 'Laboral', total: laboral }, // <-- ADICIONADO NO GRÁFICO
     ])
 
     // Pega todos os IDs dos eventos deste usuário para buscar só as presenças dele
@@ -323,7 +331,8 @@ export default function Dashboard() {
                       {dadosEventos.map((_, index) => (
                         <Cell
                           key={index}
-                          fill={['#3b82f6', '#22c55e', '#f97316'][index]}
+                          // Adicionada uma 4ª cor para a Ginástica Laboral (roxo)
+                          fill={['#3b82f6', '#22c55e', '#f97316', '#a855f7'][index]} 
                         />
                       ))}
                     </Pie>

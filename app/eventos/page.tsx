@@ -15,7 +15,15 @@ type Evento = {
   codigo: string
   codigo_evento?: string
   status?: string
+  hora_inicio?: string // Essencial para calcular o status Planejado
   hora_fim?: string
+}
+
+// FUNÇÃO PARA FORMATAR A DATA NO CARD
+function formatarData(dataString: string) {
+  if (!dataString) return ''
+  const [ano, mes, dia] = dataString.split('-')
+  return `${dia}/${mes}/${ano}`
 }
 
 export default function Eventos() {
@@ -29,7 +37,7 @@ export default function Eventos() {
     'Treinamento',
     'Reunião',
     'Integração',
-    'Gestão de mudança',
+    'Gestão de Mudança',
     'Ginástica Laboral',
   ]
 
@@ -47,7 +55,7 @@ export default function Eventos() {
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
-      .eq('usuario_id', user.id) // <-- O FILTRO DE PRIVACIDADE
+      .eq('usuario_id', user.id) // O FILTRO DE PRIVACIDADE
       .order('created_at', {
         ascending: false,
       })
@@ -219,7 +227,14 @@ export default function Eventos() {
                     titulo="🔖 Código Evento"
                     valor={evento.codigo_evento || 'Sem código'}
                   />
-                  <Info titulo="📅 Data" valor={evento.data} />
+                  
+                  {/* DATA FORMATADA E CAMPO DE HORÁRIO */}
+                  <Info titulo="📅 Data" valor={formatarData(evento.data)} />
+                  <Info 
+                    titulo="🕒 Horário" 
+                    valor={`${evento.hora_inicio || '--:--'} às ${evento.hora_fim || '--:--'}`} 
+                  />
+                  
                   <Info titulo="👨‍🏫 Responsável" valor={evento.instrutor} />
                 </div>
 
@@ -282,36 +297,35 @@ function Info({ titulo, valor }: any) {
   )
 }
 
-/* STATUS ATUALIZADO COM VERIFICAÇÃO DE HORA */
+/* STATUS ATUALIZADO COM FLUXO: PLANEJADO -> ABERTO -> ENCERRADO */
 function StatusBadge({ evento }: any) {
   let statusAtual = evento.status || 'Aberto'
 
-  if (statusAtual !== 'Encerrado' && evento.data && evento.hora_fim) {
+  // Se não foi encerrado manualmente, calculamos dinamicamente pelo horário
+  if (statusAtual !== 'Encerrado' && evento.data && evento.hora_inicio && evento.hora_fim) {
     const agora = new Date()
+    const dataHoraInicio = new Date(`${evento.data}T${evento.hora_inicio}`)
     const dataHoraFim = new Date(`${evento.data}T${evento.hora_fim}`)
 
     if (agora > dataHoraFim) {
       statusAtual = 'Encerrado'
+    } else if (agora < dataHoraInicio) {
+      statusAtual = 'Planejado'
+    } else {
+      statusAtual = 'Aberto'
     }
   }
 
-  const isEncerrado = statusAtual === 'Encerrado'
+  // Define as cores do Badge para cada status
+  let classeCor = 'bg-green-500/20 text-green-400' // Padrão Aberto
+  if (statusAtual === 'Encerrado') {
+    classeCor = 'bg-red-500/20 text-red-400'
+  } else if (statusAtual === 'Planejado') {
+    classeCor = 'bg-amber-500/20 text-amber-400' // Cor Laranja/Amarela para Planejado
+  }
 
   return (
-    <div
-      className={`
-        px-4
-        py-2
-        rounded-full
-        text-sm
-        font-bold
-        ${
-          isEncerrado
-            ? 'bg-red-500/20 text-red-400'
-            : 'bg-green-500/20 text-green-400'
-        }
-      `}
-    >
+    <div className={`px-4 py-2 rounded-full text-sm font-bold ${classeCor}`}>
       {statusAtual}
     </div>
   )
