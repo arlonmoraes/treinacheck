@@ -52,12 +52,10 @@ export default function GeradorCrachas() {
     reader.onload = (evento) => {
       const texto = evento.target?.result as string
       
-      // Divide por linhas e lida com separadores (ponto e vírgula ou vírgula)
       const linhas = texto.split('\n')
       const separador = linhas[0].includes(';') ? ';' : ','
       const cabecalho = linhas[0].toLowerCase().split(separador).map(c => c.trim())
 
-      // Encontra a posição de cada coluna
       const idxNome = cabecalho.findIndex(c => c.includes('nome'))
       const idxMatricula = cabecalho.findIndex(c => c.includes('matr'))
       const idxSetor = cabecalho.findIndex(c => c.includes('setor') || c.includes('area'))
@@ -70,9 +68,8 @@ export default function GeradorCrachas() {
 
       const crachasLidos: DadosCracha[] = []
 
-      // Pula o cabeçalho (i=1) e processa o resto
       for (let i = 1; i < linhas.length; i++) {
-        if (!linhas[i].trim()) continue // Pula linhas vazias
+        if (!linhas[i].trim()) continue
 
         const colunas = linhas[i].split(separador).map(c => c.trim().replace(/"/g, ''))
         
@@ -94,14 +91,12 @@ export default function GeradorCrachas() {
   return (
     <Protegido>
       <LayoutAdmin>
-        {/* TELA NORMAL (ESCONDIDA NA IMPRESSÃO) */}
         <div className="space-y-8 p-2 sm:p-0 print:hidden">
           <div>
             <h1 className="text-4xl font-bold text-white">🏷️ Gerador de Crachás</h1>
             <p className="text-slate-400 mt-2">Crie e imprima os QR Codes de identificação</p>
           </div>
 
-          {/* ABAS */}
           <div className="flex flex-col sm:flex-row bg-slate-900 rounded-2xl p-2 w-fit border border-slate-800 gap-2">
             <button 
               onClick={() => setModo('individual')}
@@ -118,7 +113,6 @@ export default function GeradorCrachas() {
           </div>
 
           {modo === 'individual' ? (
-            /* --- MODO INDIVIDUAL --- */
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               <div className="xl:col-span-2 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
                 <h2 className="text-xl font-bold text-white mb-2">📋 Dados do Funcionário</h2>
@@ -161,7 +155,6 @@ export default function GeradorCrachas() {
               </div>
             </div>
           ) : (
-            /* --- MODO LOTE (CSV) --- */
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
               <div className="border-2 border-dashed border-slate-700 rounded-3xl p-8 sm:p-12 flex flex-col items-center justify-center text-center">
                 <div className="text-5xl mb-6">📁</div>
@@ -195,7 +188,7 @@ export default function GeradorCrachas() {
           )}
         </div>
 
-        {/* --- ÁREA DE IMPRESSÃO (ESCONDIDA NA TELA, VISÍVEL NO PAPEL) --- */}
+        {/* --- ÁREA DE IMPRESSÃO --- */}
         <div className="hidden print:block bg-white text-black min-h-screen">
           <div className="grid grid-cols-2 gap-4 gap-y-8 p-4">
             {modo === 'individual' ? (
@@ -207,7 +200,6 @@ export default function GeradorCrachas() {
             )}
           </div>
         </div>
-
       </LayoutAdmin>
     </Protegido>
   )
@@ -215,7 +207,7 @@ export default function GeradorCrachas() {
 
 /* COMPONENTES SECUNDÁRIOS PARA MANTER O CÓDIGO LIMPO */
 
-// O cartão visual da tela escura
+// O cartão visual da tela escura (Pré-visualização)
 function CartaoCracha({ dados }: { dados: DadosCracha }) {
   const jsonStr = JSON.stringify({
     nome: dados.nome.toUpperCase().trim(),
@@ -226,16 +218,17 @@ function CartaoCracha({ dados }: { dados: DadosCracha }) {
 
   return (
     <div className="w-64 bg-white text-black p-5 rounded-2xl shadow-2xl flex flex-col items-center border border-slate-200">
-      <div className="bg-blue-600 text-white w-full py-2.5 text-center rounded-xl font-bold text-sm mb-5 shadow-sm">
+      <div className="bg-blue-600 text-white w-full py-2 text-center rounded-xl font-bold text-sm mb-4 shadow-sm">
         {dados.empresa || 'EMPRESA'}
       </div>
-      <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl mb-4">
-        <QRCodeSVG value={jsonStr} size={150} />
+      <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl mb-3">
+        {/* QR Code na pré-visualização reduzido para 110 */}
+        <QRCodeSVG value={jsonStr} size={110} />
       </div>
       <p className="font-extrabold text-center text-sm uppercase text-slate-900 tracking-tight leading-snug px-1 w-full truncate">
         {dados.nome || 'NOME DO FUNCIONÁRIO'}
       </p>
-      <div className="mt-4 pt-3 border-t border-slate-100 w-full text-center">
+      <div className="mt-3 pt-3 border-t border-slate-100 w-full text-center">
         <p className="text-[10px] text-slate-500 uppercase font-semibold">Matrícula</p>
         <p className="font-bold text-slate-800 text-base mt-0.5">{dados.matricula || '--'}</p>
       </div>
@@ -243,7 +236,7 @@ function CartaoCracha({ dados }: { dados: DadosCracha }) {
   )
 }
 
-// O cartão oficial que vai pro papel na impressora (tamanho padrão de crachá)
+// O cartão oficial que vai pro papel na impressora
 function CartaoImpressao({ dados }: { dados: DadosCracha }) {
   const jsonStr = JSON.stringify({
     nome: dados.nome.toUpperCase().trim(),
@@ -253,24 +246,25 @@ function CartaoImpressao({ dados }: { dados: DadosCracha }) {
   })
 
   return (
-    // break-inside-avoid impede que a impressora corte o crachá no meio dividindo em 2 páginas
-    <div className="w-[8.5cm] h-[5.5cm] bg-white text-black p-4 rounded-lg border-2 border-dashed border-slate-300 flex items-center gap-5 break-inside-avoid">
+    // Tamanho padrão mantido 8.5 x 5.5 (CR80)
+    <div className="w-[8.5cm] h-[5.5cm] bg-white text-black p-3 rounded-lg border border-dashed border-slate-300 flex items-center gap-4 break-inside-avoid">
       <div className="p-1 border border-slate-200 rounded-md shrink-0 bg-slate-50">
-        <QRCodeSVG value={jsonStr} size={130} />
+        {/* QR Code de impressão super reduzido (Tamanho 90) */}
+        <QRCodeSVG value={jsonStr} size={90} />
       </div>
-      <div className="flex-1 flex flex-col justify-between h-full py-2 overflow-hidden">
+      <div className="flex-1 flex flex-col justify-between h-full py-1 overflow-hidden">
         <div>
-          <span className="text-[10px] font-extrabold uppercase bg-blue-600 text-white px-2.5 py-1 rounded shadow-sm tracking-wide">
+          <span className="text-[10px] font-extrabold uppercase bg-blue-600 text-white px-2 py-0.5 rounded shadow-sm tracking-wide">
             {dados.empresa || 'EMP'}
           </span>
-          <h3 className="font-black text-sm uppercase leading-tight text-slate-900 mt-3 line-clamp-2">
+          <h3 className="font-black text-sm uppercase leading-tight text-slate-900 mt-2 line-clamp-2">
             {dados.nome}
           </h3>
           <p className="text-[10px] text-slate-500 uppercase font-semibold mt-1.5 truncate">
             {dados.setor || 'GERAL'}
           </p>
         </div>
-        <div className="border-t pt-2 border-slate-200 mt-3">
+        <div className="border-t pt-1 border-slate-200 mt-2">
           <p className="text-[9px] text-slate-500 uppercase font-bold">Matrícula</p>
           <p className="font-bold text-slate-900 text-sm mt-0.5">{dados.matricula}</p>
         </div>
