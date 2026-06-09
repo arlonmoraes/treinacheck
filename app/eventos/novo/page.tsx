@@ -2,7 +2,7 @@
 
 import LayoutAdmin from '@/app/components/LayoutAdmin'
 import Protegido from '@/app/components/Protegido'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/app/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -17,6 +17,39 @@ export default function NovoEvento() {
   const [instrutor, setInstrutor] = useState('')
   const [exigirSelfie, setExigirSelfie] = useState(true)
   const [salvando, setSalvando] = useState(false)
+  
+  // Estados para controle de segurança na tela
+  const [carregandoPerfil, setCarregandoPerfil] = useState(true)
+
+  // 🛡️ BLOQUEIO DE SEGURANÇA NA ENTRADA DA TELA
+  useEffect(() => {
+    async function verificarPermissao() {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      // Consulta a role do usuário na tabela 'perfis'
+      const { data: perfil, error } = await supabase
+        .from('perfis')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (error || !perfil || perfil.role !== 'admin') {
+        alert('🚫 Acesso negado! Apenas administradores podem criar novos eventos.')
+        router.push('/eventos')
+        return
+      }
+
+      // Se for admin, libera a tela removendo o carregando
+      setCarregandoPerfil(false)
+    }
+
+    verificarPermissao()
+  }, [])
 
   // PREFIXOS DOS EVENTOS
   function gerarPrefixo(tipo: string) {
@@ -34,7 +67,7 @@ export default function NovoEvento() {
       case 'Gestão de Mudança':
         return 'GDM'
       case 'Ginástica Laboral':
-	return 'LAB'
+        return 'LAB'
       default:
         return 'EVT'
     }
@@ -55,7 +88,6 @@ export default function NovoEvento() {
 
     setSalvando(true)
 
-    // 1. DESCOBRE QUEM ESTÁ LOGADO
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -64,7 +96,7 @@ export default function NovoEvento() {
       return
     }
 
-    // 2. BUSCA EVENTOS DO MESMO TIPO CRIADOS POR ESTE USUÁRIO
+    // BUSCA EVENTOS DO MESMO TIPO CRIADOS POR ESTE USUÁRIO
     const {
       data: eventosTipo,
       error: erroBusca,
@@ -72,7 +104,7 @@ export default function NovoEvento() {
       .from('eventos')
       .select('id')
       .eq('tipo', tipo)
-      .eq('usuario_id', user.id) // Garante que a numeração seja individual por conta
+      .eq('usuario_id', user.id)
 
     if (erroBusca) {
       console.log(erroBusca)
@@ -81,24 +113,17 @@ export default function NovoEvento() {
       return
     }
 
-    // NUMERO SEQUENCIAL
     const numero = (eventosTipo?.length || 0) + 1
-
-    // PREFIXO
     const prefixo = gerarPrefixo(tipo)
-
-    // CODIGO FINAL
     const codigoEvento = `${prefixo}-${String(numero).padStart(3, '0')}`
-
-    // CODIGO QR RANDOM
     const codigo = crypto.randomUUID()
 
-    // 3. INSERT COM O ID DO USUÁRIO
+    // INSERT COM O ID DO USUÁRIO (Garante a regra do RLS)
     const { error } = await supabase
       .from('eventos')
       .insert([
         {
-          usuario_id: user.id, // VINCULA O EVENTO AO USUÁRIO
+          usuario_id: user.id, 
           titulo,
           tipo,
           codigo_evento: codigoEvento,
@@ -116,12 +141,24 @@ export default function NovoEvento() {
 
     if (error) {
       console.log(error)
-      alert('Erro ao criar evento')
+      alert('Erro ao criar evento. Verifique suas permissões no banco.')
       return
     }
 
     alert(`Evento criado: ${codigoEvento}`)
     router.push('/eventos')
+  }
+
+  // Enquanto estiver checando se o usuário é comum ou admin, mostra tela de carregamento
+  if (carregandoPerfil) {
+    return (
+      <div className="p-10 text-white min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center space-y-2">
+          <p className="text-xl font-semibold">Verificando credenciais corporativas...</p>
+          <p className="text-sm text-slate-400">Aguarde validação de segurança.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -133,31 +170,19 @@ export default function NovoEvento() {
             <h1 className="text-4xl font-bold text-white">
               ➕ Novo Evento
             </h1>
-
             <p className="text-slate-400 mt-2">
               Cadastro de evento
             </p>
           </div>
 
           {/* CARD */}
-          <div
-            className="
-              bg-slate-900
-              border
-              border-slate-800
-              rounded-3xl
-              p-8
-              space-y-5
-            "
-          >
-            {/* TITULO */}
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 space-y-5">
             <Campo
               titulo="Título"
               value={titulo}
               onChange={(e: any) => setTitulo(e.target.value)}
             />
 
-            {/* TIPO */}
             <div>
               <label className="block mb-2 text-sm text-slate-300">
                 Tipo do Evento
@@ -166,15 +191,7 @@ export default function NovoEvento() {
               <select
                 value={tipo}
                 onChange={(e) => setTipo(e.target.value)}
-                className="
-                  w-full
-                  bg-slate-800
-                  border
-                  border-slate-700
-                  rounded-2xl
-                  p-4
-                  text-white
-                "
+                className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 text-white outline-none"
               >
                 <option value="DDS">DDS</option>
                 <option value="DDQ">DDQ</option>
@@ -182,11 +199,10 @@ export default function NovoEvento() {
                 <option value="Reunião">Reunião</option>
                 <option value="Integração">Integração</option>
                 <option value="Gestão de Mudança">Gestão de Mudança</option>
-		<option value="Ginástica Laboral">Ginástica Laboral</option>
+                <option value="Ginástica Laboral">Ginástica Laboral</option>
               </select>
             </div>
 
-            {/* DATA */}
             <Campo
               titulo="Data"
               type="date"
@@ -194,7 +210,6 @@ export default function NovoEvento() {
               onChange={(e: any) => setData(e.target.value)}
             />
 
-            {/* HORARIOS */}
             <div className="grid grid-cols-2 gap-4">
               <Campo
                 titulo="Hora início"
@@ -211,42 +226,27 @@ export default function NovoEvento() {
               />
             </div>
 
-            {/* RESPONSAVEL */}
             <Campo
               titulo="Responsável"
               value={instrutor}
               onChange={(e: any) => setInstrutor(e.target.value)}
             />
 
-            {/* SELFIE */}
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
                 checked={exigirSelfie}
                 onChange={(e) => setExigirSelfie(e.target.checked)}
               />
-
               <span className="text-white">
                 Exigir selfie
               </span>
             </div>
 
-            {/* BOTAO */}
             <button
               onClick={criarEvento}
               disabled={salvando}
-              className="
-                w-full
-                bg-blue-600
-                hover:bg-blue-700
-                disabled:opacity-50
-                transition-all
-                py-4
-                rounded-2xl
-                text-lg
-                font-bold
-                text-white
-              "
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all py-4 rounded-2xl text-lg font-bold text-white"
             >
               {salvando ? 'Criando...' : 'Criar Evento'}
             </button>
@@ -257,27 +257,15 @@ export default function NovoEvento() {
   )
 }
 
-/* CAMPO */
 function Campo({ titulo, ...props }: any) {
   return (
     <div>
       <label className="block mb-2 text-sm text-slate-300">
         {titulo}
       </label>
-
       <input
         {...props}
-        className="
-          w-full
-          bg-slate-800
-          border
-          border-slate-700
-          rounded-2xl
-          p-4
-          text-white
-          outline-none
-          focus:border-blue-500
-        "
+        className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 text-white outline-none focus:border-blue-500 transition-all"
       />
     </div>
   )
