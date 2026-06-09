@@ -17,7 +17,7 @@ type Evento = {
   status?: string
   hora_inicio?: string
   hora_fim?: string
-  usuario_id?: string // 👈 Adicionamos para checar quem é o dono do evento
+  usuario_id?: string // 👈 Para checar quem é o dono do evento
 }
 
 function formatarData(dataString: string) {
@@ -67,7 +67,7 @@ export default function Eventos() {
       }
     }
 
-    // 2. BUSCA TODOS OS EVENTOS (A RLS no banco garante que logados podem ver)
+    // 2. BUSCA TODOS OS EVENTOS
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
@@ -106,7 +106,7 @@ export default function Eventos() {
 
     if (erroPresencas) {
       console.log(erroPresencas)
-      alert('Erro ao excluir presenças')
+      alert('Erro ao excluir presenças. Acesso negado.')
       return
     }
 
@@ -176,7 +176,7 @@ export default function Eventos() {
               placeholder="Buscar evento..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 outline-none focus:border-blue-500 transition-all"
+              className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 outline-none focus:border-blue-500 transition-all text-white"
             />
           </div>
 
@@ -209,7 +209,7 @@ export default function Eventos() {
                 {/* HEADER */}
                 <div className="flex items-start justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold">{evento.titulo}</h2>
+                    <h2 className="text-2xl font-bold text-white">{evento.titulo}</h2>
                     <p className="text-slate-400 mt-1">{evento.tipo}</p>
                   </div>
                   <StatusBadge evento={evento} />
@@ -231,10 +231,10 @@ export default function Eventos() {
                   <Info titulo="👨‍🏫 Responsável" valor={evento.instrutor} />
                 </div>
 
-               {/* BOTÕES */}
+                {/* BOTÕES */}
                 <div className="flex gap-3 mt-8">
                   <Link href={`/eventos/${evento.id}`} className="flex-1">
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 transition-all py-3 rounded-2xl font-semibold">
+                    <button className="w-full bg-blue-600 hover:bg-blue-700 transition-all py-3 rounded-2xl font-semibold text-white">
                       Abrir
                     </button>
                   </Link>
@@ -243,17 +243,20 @@ export default function Eventos() {
                   {isAdmin && (evento.usuario_id === currentUserId || !evento.usuario_id) && (
                     <button
                       onClick={() => excluirEvento(evento.id)}
-                      className="bg-red-600 hover:bg-red-700 transition-all px-5 rounded-2xl font-semibold"
+                      className="bg-red-600 hover:bg-red-700 transition-all px-5 rounded-2xl font-semibold text-white"
                     >
                       Excluir
                     </button>
                   )}
                 </div>
+              </div>
+            ))}
+          </div>
 
           {/* VAZIO */}
           {eventosFiltrados.length === 0 && (
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center">
-              <h2 className="text-2xl font-bold">Nenhum evento encontrado</h2>
+              <h2 className="text-2xl font-bold text-white">Nenhum evento encontrado</h2>
               <p className="text-slate-400 mt-3">Tente outra busca</p>
             </div>
           )}
@@ -267,7 +270,7 @@ function Info({ titulo, valor }: any) {
   return (
     <div className="bg-slate-800 p-4 rounded-2xl">
       <p className="text-slate-400 text-sm">{titulo}</p>
-      <strong className="text-lg">{valor}</strong>
+      <strong className="text-lg text-white">{valor}</strong>
     </div>
   )
 }
