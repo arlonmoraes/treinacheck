@@ -89,6 +89,9 @@ export default function LayoutAdmin({
           <Link href="/eventos/novo" className={menuItem} onClick={fecharMenu}>
             ➕ Novo Evento
           </Link>
+	  <Link href="/crachas" className={menuItem} onClick={fecharMenu}>
+	    🪪 Gerar Crachás
+	  </Link>
           <Link href="/relatorios" className={menuItem} onClick={fecharMenu}>
             📄 Relatórios
           </Link>
