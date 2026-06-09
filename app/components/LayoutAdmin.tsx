@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/app/lib/supabase'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function LayoutAdmin({
   children,
@@ -12,15 +12,34 @@ export default function LayoutAdmin({
 }) {
   const router = useRouter()
   
-  // Controle para abrir/fechar o menu no celular
   const [menuAberto, setMenuAberto] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false) // 🛡️ Controle de acesso visual
+
+  useEffect(() => {
+    async function verificarPerfil() {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (user) {
+        const { data: perfil } = await supabase
+          .from('perfis')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        if (perfil?.role === 'admin') {
+          setIsAdmin(true)
+        }
+      }
+    }
+    
+    verificarPerfil()
+  }, [])
 
   async function sair() {
     await supabase.auth.signOut()
     router.push('/login')
   }
 
-  // Função para fechar o menu ao clicar em um link no celular
   function fecharMenu() {
     setMenuAberto(false)
   }
@@ -28,7 +47,7 @@ export default function LayoutAdmin({
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col md:flex-row">
       
-      {/* HEADER MOBILE (Só aparece no celular) */}
+      {/* HEADER MOBILE */}
       <div className="md:hidden flex items-center justify-between bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <img
@@ -47,7 +66,7 @@ export default function LayoutAdmin({
         </button>
       </div>
 
-      {/* OVERLAY ESCURO NO CELULAR (Clica fora para fechar) */}
+      {/* OVERLAY ESCURO NO CELULAR */}
       {menuAberto && (
         <div 
           className="fixed inset-0 bg-black/70 z-40 md:hidden"
@@ -86,12 +105,19 @@ export default function LayoutAdmin({
           <Link href="/eventos" className={menuItem} onClick={fecharMenu}>
             📅 Eventos
           </Link>
-          <Link href="/eventos/novo" className={menuItem} onClick={fecharMenu}>
-            ➕ Novo Evento
-          </Link>
-	  <Link href="/crachas" className={menuItem} onClick={fecharMenu}>
-	    🪪 Gerar Crachás
-	  </Link>
+          
+          {/* 🛑 ITENS EXCLUSIVOS PARA ADMINISTRADORES */}
+          {isAdmin && (
+            <>
+              <Link href="/eventos/novo" className={menuItem} onClick={fecharMenu}>
+                ➕ Novo Evento
+              </Link>
+              <Link href="/crachas" className={menuItem} onClick={fecharMenu}>
+                🪪 Gerar Crachás
+              </Link>
+            </>
+          )}
+
           <Link href="/relatorios" className={menuItem} onClick={fecharMenu}>
             📄 Relatórios
           </Link>

@@ -15,11 +15,11 @@ type Evento = {
   codigo: string
   codigo_evento?: string
   status?: string
-  hora_inicio?: string // Essencial para calcular o status Planejado
+  hora_inicio?: string
   hora_fim?: string
+  usuario_id?: string // 👈 Adicionamos para checar quem é o dono do evento
 }
 
-// FUNÇÃO PARA FORMATAR A DATA NO CARD
 function formatarData(dataString: string) {
   if (!dataString) return ''
   const [ano, mes, dia] = dataString.split('-')
@@ -30,6 +30,10 @@ export default function Eventos() {
   const [eventos, setEventos] = useState<Evento[]>([])
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<string[]>([])
+  
+  // 🛡️ Estados de Segurança
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   const tiposEvento = [
     'DDS',
@@ -42,20 +46,31 @@ export default function Eventos() {
   ]
 
   useEffect(() => {
-    buscarEventos()
+    carregarDados()
   }, [])
 
-  async function buscarEventos() {
-    // 1. DESCOBRE QUEM ESTÁ LOGADO
+  async function carregarDados() {
+    // 1. DESCOBRE QUEM ESTÁ LOGADO E O PERFIL
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) return
+    if (user) {
+      setCurrentUserId(user.id)
+      
+      const { data: perfil } = await supabase
+        .from('perfis')
+        .select('role')
+        .eq('id', user.id)
+        .single()
 
-    // 2. BUSCA EVENTOS FILTRADOS POR QUEM ESTÁ LOGADO
+      if (perfil?.role === 'admin') {
+        setIsAdmin(true)
+      }
+    }
+
+    // 2. BUSCA TODOS OS EVENTOS (A RLS no banco garante que logados podem ver)
     const { data, error } = await supabase
       .from('eventos')
       .select('*')
-      .eq('usuario_id', user.id) // O FILTRO DE PRIVACIDADE
       .order('created_at', {
         ascending: false,
       })
@@ -101,12 +116,12 @@ export default function Eventos() {
 
     if (error) {
       console.log(error)
-      alert('Erro ao excluir evento')
+      alert('Erro ao excluir evento. Verifique suas permissões.')
       return
     }
 
     alert('Evento excluído com sucesso!')
-    buscarEventos()
+    carregarDados() // Recarrega a lista
   }
 
   const eventosFiltrados = eventos.filter((e) => {
@@ -131,22 +146,19 @@ export default function Eventos() {
               <p className="text-slate-400 mt-2">Gerencie os eventos</p>
             </div>
 
-            <Link href="/eventos/novo">
-              <button
-                className="
-                  bg-blue-600
-                  hover:bg-blue-700
-                  transition-all
-                  px-5
-                  py-3
-                  rounded-2xl
-                  font-semibold
-                  shadow-lg
-                "
-              >
-                + Criar novo evento
-              </button>
-            </Link>
+            {/* 🛑 BOTÃO SÓ APARECE PARA ADMIN */}
+            {isAdmin && (
+              <Link href="/eventos/novo">
+                <button
+                  className="
+                    bg-blue-600 hover:bg-blue-700 transition-all px-5 py-3 
+                    rounded-2xl font-semibold shadow-lg
+                  "
+                >
+                  + Criar novo evento
+                </button>
+              </Link>
+            )}
           </div>
 
           {/* BUSCA */}
@@ -155,17 +167,7 @@ export default function Eventos() {
               placeholder="Buscar evento..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="
-                w-full
-                bg-slate-800
-                border
-                border-slate-700
-                rounded-2xl
-                p-4
-                outline-none
-                focus:border-blue-500
-                transition-all
-              "
+              className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 outline-none focus:border-blue-500 transition-all"
             />
           </div>
 
@@ -178,16 +180,8 @@ export default function Eventos() {
                   key={tipo}
                   onClick={() => toggleFiltro(tipo)}
                   className={`
-                    px-4
-                    py-2
-                    rounded-2xl
-                    font-semibold
-                    transition-all
-                    ${
-                      ativo
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }
+                    px-4 py-2 rounded-2xl font-semibold transition-all
+                    ${ativo ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}
                   `}
                 >
                   {tipo}
@@ -201,16 +195,7 @@ export default function Eventos() {
             {eventosFiltrados.map((evento) => (
               <div
                 key={evento.id}
-                className="
-                  bg-slate-900
-                  border
-                  border-slate-800
-                  rounded-3xl
-                  p-6
-                  shadow-2xl
-                  hover:scale-[1.02]
-                  transition-all
-                "
+                className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl hover:scale-[1.02] transition-all"
               >
                 {/* HEADER */}
                 <div className="flex items-start justify-between">
@@ -228,7 +213,6 @@ export default function Eventos() {
                     valor={evento.codigo_evento || 'Sem código'}
                   />
                   
-                  {/* DATA FORMATADA E CAMPO DE HORÁRIO */}
                   <Info titulo="📅 Data" valor={formatarData(evento.data)} />
                   <Info 
                     titulo="🕒 Horário" 
@@ -241,34 +225,20 @@ export default function Eventos() {
                 {/* BOTÕES */}
                 <div className="flex gap-3 mt-8">
                   <Link href={`/eventos/${evento.id}`} className="flex-1">
-                    <button
-                      className="
-                        w-full
-                        bg-blue-600
-                        hover:bg-blue-700
-                        transition-all
-                        py-3
-                        rounded-2xl
-                        font-semibold
-                      "
-                    >
+                    <button className="w-full bg-blue-600 hover:bg-blue-700 transition-all py-3 rounded-2xl font-semibold">
                       Abrir
                     </button>
                   </Link>
 
-                  <button
-                    onClick={() => excluirEvento(evento.id)}
-                    className="
-                      bg-red-600
-                      hover:bg-red-700
-                      transition-all
-                      px-5
-                      rounded-2xl
-                      font-semibold
-                    "
-                  >
-                    Excluir
-                  </button>
+                  {/* 🛑 BOTÃO EXCLUIR SÓ APARECE SE O USUÁRIO LOGADO FOR O DONO DO EVENTO */}
+                  {evento.usuario_id === currentUserId && (
+                    <button
+                      onClick={() => excluirEvento(evento.id)}
+                      className="bg-red-600 hover:bg-red-700 transition-all px-5 rounded-2xl font-semibold"
+                    >
+                      Excluir
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -287,7 +257,6 @@ export default function Eventos() {
   )
 }
 
-/* INFO */
 function Info({ titulo, valor }: any) {
   return (
     <div className="bg-slate-800 p-4 rounded-2xl">
@@ -297,11 +266,9 @@ function Info({ titulo, valor }: any) {
   )
 }
 
-/* STATUS ATUALIZADO COM FLUXO: PLANEJADO -> ABERTO -> ENCERRADO */
 function StatusBadge({ evento }: any) {
   let statusAtual = evento.status || 'Aberto'
 
-  // Se não foi encerrado manualmente, calculamos dinamicamente pelo horário
   if (statusAtual !== 'Encerrado' && evento.data && evento.hora_inicio && evento.hora_fim) {
     const agora = new Date()
     const dataHoraInicio = new Date(`${evento.data}T${evento.hora_inicio}`)
@@ -316,12 +283,11 @@ function StatusBadge({ evento }: any) {
     }
   }
 
-  // Define as cores do Badge para cada status
-  let classeCor = 'bg-green-500/20 text-green-400' // Padrão Aberto
+  let classeCor = 'bg-green-500/20 text-green-400' 
   if (statusAtual === 'Encerrado') {
     classeCor = 'bg-red-500/20 text-red-400'
   } else if (statusAtual === 'Planejado') {
-    classeCor = 'bg-amber-500/20 text-amber-400' // Cor Laranja/Amarela para Planejado
+    classeCor = 'bg-amber-500/20 text-amber-400'
   }
 
   return (
