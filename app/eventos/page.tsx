@@ -231,7 +231,7 @@ export default function Eventos() {
                   <Info titulo="👨‍🏫 Responsável" valor={evento.instrutor} />
                 </div>
 
-                {/* BOTÕES */}
+               {/* BOTÕES */}
                 <div className="flex gap-3 mt-8">
                   <Link href={`/eventos/${evento.id}`} className="flex-1">
                     <button className="w-full bg-blue-600 hover:bg-blue-700 transition-all py-3 rounded-2xl font-semibold">
@@ -239,8 +239,8 @@ export default function Eventos() {
                     </button>
                   </Link>
 
-                  {/* 🛑 BOTÃO EXCLUIR SÓ APARECE SE O USUÁRIO LOGADO FOR O DONO DO EVENTO */}
-                  {evento.usuario_id === currentUserId && (
+                  {/* 🛑 NOVA CONDIÇÃO DO BOTÃO EXCLUIR */}
+                  {isAdmin && (evento.usuario_id === currentUserId || !evento.usuario_id) && (
                     <button
                       onClick={() => excluirEvento(evento.id)}
                       className="bg-red-600 hover:bg-red-700 transition-all px-5 rounded-2xl font-semibold"
@@ -249,9 +249,6 @@ export default function Eventos() {
                     </button>
                   )}
                 </div>
-              </div>
-            ))}
-          </div>
 
           {/* VAZIO */}
           {eventosFiltrados.length === 0 && (
