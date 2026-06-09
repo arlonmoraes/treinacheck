@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.0",
+    "@yudiel/react-qr-scanner": "^2.6.0",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "next": "16.2.4",
