@@ -98,6 +98,7 @@ export default function Eventos() {
 
     if (!confirmar) return
 
+    // Primeiro exclui as presenças atreladas a esse evento
     const { error: erroPresencas } = await supabase
       .from('presencas')
       .delete()
@@ -109,18 +110,26 @@ export default function Eventos() {
       return
     }
 
-    const { error } = await supabase
+    // Agora exclui o evento e pede para retornar o dado apagado (.select())
+    const { data: eventoApagado, error } = await supabase
       .from('eventos')
       .delete()
       .eq('id', id)
+      .select()
 
     if (error) {
       console.log(error)
-      alert('Erro ao excluir evento. Verifique suas permissões.')
+      alert('Erro técnico ao tentar excluir.')
       return
     }
 
-    alert('Evento excluído com sucesso!')
+    // A MÁGICA PARA EVITAR O FALSO SUCESSO:
+    if (!eventoApagado || eventoApagado.length === 0) {
+      alert('🚫 Acesso Negado: Você não tem permissão para excluir este evento.')
+      return
+    }
+
+    alert('✅ Evento excluído com sucesso!')
     carregarDados() // Recarrega a lista
   }
 
