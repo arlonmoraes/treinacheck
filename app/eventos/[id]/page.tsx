@@ -76,20 +76,32 @@ export default function EventoDetalhe() {
 
   /* LÓGICA DO MODO SCANNER (CRACHÁ) */
   async function onScanCracha(texto: string) {
-    // Evita ler o mesmo QR code várias vezes seguidas rapidamente
     if (scaneando) return
     setScaneando(true)
 
     try {
-      // Tenta transformar o texto do QR em um objeto JSON
       const dados = JSON.parse(texto)
 
-      // Validação básica para garantir que é um crachá válido nosso
       if (!dados.nome || !dados.matricula) {
         throw new Error('QR Code inválido: Faltam dados do funcionário.')
       }
 
-      // Salva no banco de dados
+      // 🛑 NOVA REGRA: VERIFICA SE JÁ EXISTE NA LISTA
+      const jaRegistrado = presencas.find((p) => p.matricula === String(dados.matricula))
+      
+      if (jaRegistrado) {
+        // Se já estiver na lista, dá o aviso amarelo e cancela a gravação
+        setFeedbackScan(`⚠️ ${dados.nome} já foi registrado!`)
+        
+        setTimeout(() => {
+          setScaneando(false)
+          setFeedbackScan('')
+        }, 2000)
+        
+        return // O "return" faz a função parar aqui e não envia pro Supabase
+      }
+
+      // Se passou pela barreira acima, salva no banco normalmente:
       const { error } = await supabase.from('presencas').insert([
         {
           evento_id: evento?.id,
@@ -97,19 +109,15 @@ export default function EventoDetalhe() {
           matricula: String(dados.matricula),
           setor: dados.setor || '',
           empresa: dados.empresa || '',
-          centro_custo: dados.centro_custo || '', // Nosso novo campo!
+          centro_custo: dados.centro_custo || '', 
           data_hora: new Date().toISOString(),
-          // Como é modo scanner presencial pelo instrutor, a foto pode ficar vazia ou receber uma flag
           foto_url: null, 
         },
       ])
 
       if (error) throw error
 
-      // Feedback de sucesso
       setFeedbackScan(`✅ ${dados.nome} registrado com sucesso!`)
-      
-      // Atualiza a lista de presenças na tela
       carregar()
 
     } catch (err: any) {
@@ -117,7 +125,6 @@ export default function EventoDetalhe() {
       setFeedbackScan(`❌ Erro: ${err.message || 'QR Code inválido.'}`)
     }
 
-    // Libera para o próximo scan após 2 segundos
     setTimeout(() => {
       setScaneando(false)
       setFeedbackScan('')
