@@ -219,23 +219,44 @@ export default function EventoDetalhe() {
     return empresaOk && tipoOk
   })
 
-  /* CSV */
+  /* CSV MELHORADO COM CABEÇALHO INTERNO */
   function exportarCSV() {
     if (!evento) return
     try {
-      const linhas = [
-        ['Nome', 'Matrícula', 'Setor', 'Centro de Custo', 'Empresa', 'Data/Hora'],
-        ...presencasFiltradas.map((p) => [
-          p.nome || '', p.matricula || '', p.setor || '', p.centro_custo || '', p.empresa || '',
+      // \uFEFF força o Excel a abrir com acentuação correta em Português
+      let csvContent = "\uFEFF";
+      
+      // Adiciona a ficha técnica do evento no topo da planilha
+      csvContent += `NOME DO EVENTO:;${evento.titulo}\n`;
+      csvContent += `TIPO DE EVENTO:;${evento.tipo}\n`;
+      csvContent += `INSTRUTOR / RESPONSÁVEL:;${evento.instrutor}\n`;
+      csvContent += `DATA DO EVENTO:;${evento.data}\n`;
+      csvContent += `TOTAL DE PARTICIPANTES:;${presencasFiltradas.length}\n`;
+      csvContent += `\n`; // Linha em branco para separar as informações da listagem
+      
+      // Cabeçalho dos dados dos colaboradores
+      const cabecalhoColunas = ['Nome', 'Matrícula', 'Setor', 'Centro de Custo', 'Empresa', 'Data/Hora'];
+      csvContent += cabecalhoColunas.join(';') + '\n';
+      
+      // Adiciona as linhas dos colaboradores presentes
+      presencasFiltradas.forEach((p) => {
+        const linha = [
+          p.nome || '', 
+          p.matricula || '', 
+          p.setor || '', 
+          p.centro_custo || '', 
+          p.empresa || '',
           p.data_hora ? new Date(p.data_hora).toLocaleString() : '',
-        ]),
-      ]
-      const csv = linhas.map((l) => l.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n')
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+        ];
+        // Envolve em aspas duplas para evitar problemas com nomes compostos ou que contenham pontos/vírgulas
+        csvContent += linha.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';') + '\n';
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `presencas-${evento.titulo}.csv`)
+      link.setAttribute('download', `presencas-${evento.titulo.replace(/\s+/g, '_')}.csv`)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -245,28 +266,49 @@ export default function EventoDetalhe() {
     }
   }
 
-  /* PDF */
+  /* PDF MELHORADO COM QUEBRA AUTOMÁTICA DE LINHA NO TÍTULO */
   async function exportarPDF() {
     if (!evento) return
     try {
       const autoTable = (await import('jspdf-autotable')).default
       const doc = new jsPDF()
-      doc.setFontSize(20)
-      doc.text(`Relatório - ${evento.titulo}`, 14, 20)
+      
+      // Configuração estilizada do Título
+      doc.setFont('Helvetica', 'bold')
+      doc.setFontSize(18)
+      doc.setTextColor(33, 43, 54)
+
+      // Quebra o texto automaticamente se ele passar do limite lateral da folha (180mm)
+      const linhasTitulo = doc.splitTextToSize(`Relatório - ${evento.titulo}`, 180)
+      doc.text(linhasTitulo, 14, 20)
+
+      // Calcula o recuo vertical dinâmico com base em quantas linhas o título ocupou
+      let espacamentoY = 20 + (linhasTitulo.length * 7) + 5
+
+      // Subtítulos e metadados do evento
+      doc.setFont('Helvetica', 'normal')
       doc.setFontSize(11)
-      doc.text(`Tipo: ${evento.tipo}`, 14, 32)
-      doc.text(`Instrutor: ${evento.instrutor}`, 14, 40)
-      doc.text(`Data: ${evento.data}`, 14, 48)
+      doc.setTextColor(100, 116, 139)
+      
+      doc.text(`Tipo: ${evento.tipo}`, 14, espacamentoY)
+      espacamentoY += 8
+      doc.text(`Instrutor: ${evento.instrutor}`, 14, espacamentoY)
+      espacamentoY += 8
+      doc.text(`Data: ${evento.data}`, 14, espacamentoY)
+      espacamentoY += 12 // Espaço extra antes de desenhar a tabela
 
       autoTable(doc, {
-        startY: 60,
+        startY: espacamentoY,
         head: [['Nome', 'Matrícula', 'Setor', 'Empresa', 'Hora']],
         body: presencasFiltradas.map((p) => [
           p.nome || '', p.matricula || '', p.setor || '', p.empresa || '',
           p.data_hora ? new Date(p.data_hora).toLocaleTimeString() : '',
         ]),
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235] } // Azul corporativo combinando com o app
       })
-      doc.save(`relatorio-${evento.titulo}.pdf`)
+
+      doc.save(`relatorio-${evento.titulo.replace(/\s+/g, '_')}.pdf`)
     } catch (err) {
       alert('Erro ao gerar PDF')
     }
@@ -318,7 +360,7 @@ export default function EventoDetalhe() {
                 </div>
               </div>
 
-              {/* MODO SCANNER */}
+              /* MODO SCANNER */
               <div className="bg-slate-900 border border-blue-900/50 rounded-3xl p-5 sm:p-8 shadow-2xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">📸 Modo Scanner (Crachás)</h2>
@@ -372,7 +414,7 @@ export default function EventoDetalhe() {
             </div>
           </div>
 
-          {/* FILTROS E LISTA DE PRESENÇA (MANTIDOS) */}
+          {/* FILTROS E LISTA DE PRESENÇA */}
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl">
             <h2 className="text-xl font-bold mb-4 text-white">🔎 Filtros</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
