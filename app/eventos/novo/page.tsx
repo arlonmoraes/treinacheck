@@ -96,15 +96,16 @@ export default function NovoEvento() {
       return
     }
 
-    // BUSCA EVENTOS DO MESMO TIPO CRIADOS POR ESTE USUÁRIO
+    // 🔥 BUSCA O ÚLTIMO EVENTO DESTE TIPO NO SISTEMA INTEIRO (Global)
     const {
-      data: eventosTipo,
+      data: ultimosEventos,
       error: erroBusca,
     } = await supabase
       .from('eventos')
-      .select('id')
+      .select('codigo_evento')
       .eq('tipo', tipo)
-      .eq('usuario_id', user.id)
+      .order('created_at', { ascending: false }) // Pega o mais recente
+      .limit(1) // Traz apenas 1 resultado
 
     if (erroBusca) {
       console.log(erroBusca)
@@ -113,12 +114,24 @@ export default function NovoEvento() {
       return
     }
 
-    const numero = (eventosTipo?.length || 0) + 1
-    const prefixo = gerarPrefixo(tipo)
-    const codigoEvento = `${prefixo}-${String(numero).padStart(3, '0')}`
-    const codigo = crypto.randomUUID()
+    let proximoNumero = 1
 
-    // INSERT COM O ID DO USUÁRIO (Garante a regra do RLS)
+    // Se já existe algum evento desse tipo, pega o número dele e soma +1
+    if (ultimosEventos && ultimosEventos.length > 0 && ultimosEventos[0].codigo_evento) {
+      // Exemplo: "DDS-005" -> Quebra no "-" e vira ["DDS", "005"]
+      const partes = ultimosEventos[0].codigo_evento.split('-')
+      const ultimoNumero = parseInt(partes[1])
+      
+      if (!isNaN(ultimoNumero)) {
+        proximoNumero = ultimoNumero + 1
+      }
+    }
+
+    const prefixo = gerarPrefixo(tipo)
+    const codigoEvento = `${prefixo}-${String(proximoNumero).padStart(3, '0')}`
+    const codigo = crypto.randomUUID() // Esse é o ID único para a URL
+
+    // INSERT COM O ID DO USUÁRIO
     const { error } = await supabase
       .from('eventos')
       .insert([
