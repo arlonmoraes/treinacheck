@@ -106,6 +106,7 @@ export default function Relatorios() {
   function exportarCSV() {
     const linhas = [
       [
+        'Código do Evento', // 🔥 Adicionado cabeçalho
         'Nome',
         'Matrícula',
         'Setor',
@@ -117,8 +118,10 @@ export default function Relatorios() {
       ...presencas.map((p) => {
         const eventoReferente = eventos.find(e => e.id === p.evento_id)
         const nomeEvento = eventoReferente ? eventoReferente.titulo : 'Desconhecido'
+        const codigoEvento = eventoReferente ? eventoReferente.codigo_evento : '' // 🔥 Puxando o código
 
         return [
+          codigoEvento, // 🔥 Inserindo na linha
           p.nome || '',
           p.matricula || '',
           p.setor || '',
@@ -166,6 +169,7 @@ export default function Relatorios() {
       startY: 40,
       head: [
         [
+          'Código do Evento', // 🔥 Adicionado cabeçalho
           'Nome',
           'Matrícula',
           'Setor',
@@ -177,8 +181,10 @@ export default function Relatorios() {
       body: presencas.map((p) => {
         const eventoReferente = eventos.find(e => e.id === p.evento_id)
         const nomeEvento = eventoReferente ? eventoReferente.titulo : 'Desconhecido'
+        const codigoEvento = eventoReferente ? eventoReferente.codigo_evento : '' // 🔥 Puxando o código
 
         return [
+          codigoEvento, // 🔥 Inserindo na linha
           p.nome || '',
           p.matricula || '',
           p.setor || '',
@@ -229,7 +235,7 @@ export default function Relatorios() {
               <option value="Reunião">Reunião</option>
               <option value="Integração">Integração</option>
               <option value="Gestão de Mudança">Gestão de Mudança</option>
-	      <option value="Ginástica Laboral">Ginástica Laboral</option>
+              <option value="Ginástica Laboral">Ginástica Laboral</option>
             </select>
           </div>
 
