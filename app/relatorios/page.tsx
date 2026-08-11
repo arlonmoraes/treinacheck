@@ -40,12 +40,33 @@ export default function Relatorios() {
 
     if (!user) return
 
-    // 2. BUSCA OS EVENTOS APENAS DESSE USUÁRIO
-    const { data, error } = await supabase
+    // 2. BUSCA O PERFIL/ROLE DO USUÁRIO
+    const { data: perfil, error: erroPerfil } = await supabase
+      .from('perfis')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (erroPerfil) {
+      console.log('Erro ao buscar perfil:', erroPerfil)
+    }
+
+    const role = perfil?.role || 'user' // Se não achar, assume que é usuário comum
+
+    // 3. MONTA A BUSCA BASE (Traz tudo ordenado)
+    let query = supabase
       .from('eventos')
       .select('*')
-      .eq('usuario_id', user.id) // <-- O FILTRO DE PRIVACIDADE AQUI
       .order('data', { ascending: false })
+
+    // 4. APLICA O FILTRO SE NÃO FOR GESTOR
+    // Se a role for diferente de 'gestor', ele só pode ver os próprios eventos.
+    if (role !== 'gestor') {
+      query = query.eq('usuario_id', user.id)
+    }
+
+    // 5. EXECUTA A BUSCA DEFINITIVA
+    const { data, error } = await query
 
     if (error) {
       console.log(error)
