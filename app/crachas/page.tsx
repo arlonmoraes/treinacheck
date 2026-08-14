@@ -25,14 +25,6 @@ export default function GeradorCrachas() {
   const [listaLote, setListaLote] = useState<DadosCracha[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Gera o JSON para o modo individual
-  const stringJsonIndividual = JSON.stringify({
-    nome: nome.toUpperCase().trim(),
-    matricula: matricula.trim(),
-    setor: setor.toUpperCase().trim(),
-    empresa: empresa
-  })
-
   function limparFormulario() {
     setNome('')
     setMatricula('')
@@ -190,7 +182,8 @@ export default function GeradorCrachas() {
 
         {/* --- ÁREA DE IMPRESSÃO --- */}
         <div className="hidden print:block bg-white text-black min-h-screen">
-          <div className="grid grid-cols-2 gap-4 gap-y-8 p-4">
+          {/* Mudei para grid-cols-4 ou grid-cols-5 dependendo do tamanho do papel que você usa, para caberem vários */}
+          <div className="flex flex-wrap gap-4 p-4 justify-center">
             {modo === 'individual' ? (
               <CartaoImpressao dados={{ nome, matricula, setor, empresa }} />
             ) : (
@@ -209,28 +202,28 @@ export default function GeradorCrachas() {
 
 // O cartão visual da tela escura (Pré-visualização)
 function CartaoCracha({ dados }: { dados: DadosCracha }) {
-  const jsonStr = JSON.stringify({
-    nome: dados.nome.toUpperCase().trim(),
-    matricula: dados.matricula.trim(),
-    setor: dados.setor.toUpperCase().trim(),
-    empresa: dados.empresa
-  })
+  // 🔥 MUDANÇA PRINCIPAL: O QR Code agora tem apenas a matrícula!
+  const qrValue = dados.matricula ? dados.matricula.trim() : '0000'
 
   return (
-    <div className="w-64 bg-white text-black p-5 rounded-2xl shadow-2xl flex flex-col items-center border border-slate-200">
-      <div className="bg-blue-600 text-white w-full py-2 text-center rounded-xl font-bold text-sm mb-4 shadow-sm">
-        {dados.empresa || 'EMPRESA'}
+    <div className="w-64 bg-white text-black p-6 rounded-2xl shadow-2xl flex flex-col items-center justify-center border border-slate-200 h-[8.5cm]">
+      
+      {/* NOME EM DESTAQUE */}
+      <div className="mb-4 text-center w-full min-h-[3rem] flex items-center justify-center">
+        <h3 className="font-black text-lg uppercase leading-tight text-slate-900 line-clamp-2">
+          {dados.nome || 'NOME DO FUNCIONÁRIO'}
+        </h3>
       </div>
-      <div className="p-2 bg-slate-50 border border-slate-100 rounded-xl mb-3">
-        {/* QR Code na pré-visualização reduzido para 110 */}
-        <QRCodeSVG value={jsonStr} size={110} />
+
+      {/* QR CODE */}
+      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl mb-4">
+        <QRCodeSVG value={qrValue} size={140} />
       </div>
-      <p className="font-extrabold text-center text-sm uppercase text-slate-900 tracking-tight leading-snug px-1 w-full truncate">
-        {dados.nome || 'NOME DO FUNCIONÁRIO'}
-      </p>
-      <div className="mt-3 pt-3 border-t border-slate-100 w-full text-center">
+      
+      {/* MATRÍCULA (Apenas para leitura visual) */}
+      <div className="mt-auto border-t border-slate-100 w-full text-center pt-3">
         <p className="text-[10px] text-slate-500 uppercase font-semibold">Matrícula</p>
-        <p className="font-bold text-slate-800 text-base mt-0.5">{dados.matricula || '--'}</p>
+        <p className="font-bold text-slate-800 text-lg">{dados.matricula || '--'}</p>
       </div>
     </div>
   )
@@ -238,37 +231,31 @@ function CartaoCracha({ dados }: { dados: DadosCracha }) {
 
 // O cartão oficial que vai pro papel na impressora
 function CartaoImpressao({ dados }: { dados: DadosCracha }) {
-  const jsonStr = JSON.stringify({
-    nome: dados.nome.toUpperCase().trim(),
-    matricula: dados.matricula.trim(),
-    setor: dados.setor.toUpperCase().trim(),
-    empresa: dados.empresa
-  })
+  // 🔥 MUDANÇA PRINCIPAL: O QR Code agora tem apenas a matrícula!
+  const qrValue = dados.matricula.trim()
 
   return (
-    // Tamanho padrão mantido 8.5 x 5.5 (CR80)
-    <div className="w-[8.5cm] h-[5.5cm] bg-white text-black p-3 rounded-lg border border-dashed border-slate-300 flex items-center gap-4 break-inside-avoid">
-      <div className="p-1 border border-slate-200 rounded-md shrink-0 bg-slate-50">
-        {/* QR Code de impressão super reduzido (Tamanho 90) */}
-        <QRCodeSVG value={jsonStr} size={90} />
+    // Transformei em um layout vertical (5.5cm x 8.5cm), que é o padrão de crachá e fica perfeito com QR + Nome
+    <div className="w-[5.5cm] h-[8.5cm] bg-white text-black p-4 rounded-lg border border-dashed border-slate-400 flex flex-col items-center justify-between break-inside-avoid">
+      
+      {/* NOME EM DESTAQUE NO TOPO */}
+      <div className="text-center w-full mt-2">
+        <h3 className="font-black text-sm uppercase leading-tight text-slate-900 line-clamp-2">
+          {dados.nome}
+        </h3>
       </div>
-      <div className="flex-1 flex flex-col justify-between h-full py-1 overflow-hidden">
-        <div>
-          <span className="text-[10px] font-extrabold uppercase bg-blue-600 text-white px-2 py-0.5 rounded shadow-sm tracking-wide">
-            {dados.empresa || 'EMP'}
-          </span>
-          <h3 className="font-black text-sm uppercase leading-tight text-slate-900 mt-2 line-clamp-2">
-            {dados.nome}
-          </h3>
-          <p className="text-[10px] text-slate-500 uppercase font-semibold mt-1.5 truncate">
-            {dados.setor || 'GERAL'}
-          </p>
-        </div>
-        <div className="border-t pt-1 border-slate-200 mt-2">
-          <p className="text-[9px] text-slate-500 uppercase font-bold">Matrícula</p>
-          <p className="font-bold text-slate-900 text-sm mt-0.5">{dados.matricula}</p>
-        </div>
+
+      {/* QR CODE BEM GRANDE NO CENTRO */}
+      <div className="p-2 border border-slate-200 rounded-lg bg-slate-50 flex justify-center w-full my-auto">
+        <QRCodeSVG value={qrValue} size={130} />
       </div>
+
+      {/* MATRÍCULA NO RODAPÉ */}
+      <div className="text-center w-full border-t border-slate-200 pt-2 mb-1">
+        <p className="text-[9px] text-slate-500 uppercase font-bold">Matrícula</p>
+        <p className="font-bold text-slate-900 text-sm leading-none">{dados.matricula}</p>
+      </div>
+      
     </div>
   )
 }
