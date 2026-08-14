@@ -182,7 +182,6 @@ export default function GeradorCrachas() {
 
         {/* --- ÁREA DE IMPRESSÃO --- */}
         <div className="hidden print:block bg-white text-black min-h-screen">
-          {/* Mudei para grid-cols-4 ou grid-cols-5 dependendo do tamanho do papel que você usa, para caberem vários */}
           <div className="flex flex-wrap gap-4 p-4 justify-center">
             {modo === 'individual' ? (
               <CartaoImpressao dados={{ nome, matricula, setor, empresa }} />
@@ -202,58 +201,46 @@ export default function GeradorCrachas() {
 
 // O cartão visual da tela escura (Pré-visualização)
 function CartaoCracha({ dados }: { dados: DadosCracha }) {
-  // 🔥 MUDANÇA PRINCIPAL: O QR Code agora tem apenas a matrícula!
+  // O QR Code tem apenas a matrícula
   const qrValue = dados.matricula ? dados.matricula.trim() : '0000'
 
   return (
     <div className="w-64 bg-white text-black p-6 rounded-2xl shadow-2xl flex flex-col items-center justify-center border border-slate-200 h-[8.5cm]">
       
-      {/* NOME EM DESTAQUE */}
-      <div className="mb-4 text-center w-full min-h-[3rem] flex items-center justify-center">
-        <h3 className="font-black text-lg uppercase leading-tight text-slate-900 line-clamp-2">
+      {/* NOME EM DESTAQUE - MAIOR E CENTRALIZADO */}
+      <div className="mb-6 text-center w-full flex items-center justify-center">
+        <h3 className="font-black text-xl uppercase leading-tight text-slate-900 line-clamp-2">
           {dados.nome || 'NOME DO FUNCIONÁRIO'}
         </h3>
       </div>
 
-      {/* QR CODE */}
-      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl mb-4">
-        <QRCodeSVG value={qrValue} size={140} />
+      {/* QR CODE GIGANTE */}
+      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+        <QRCodeSVG value={qrValue} size={150} />
       </div>
       
-      {/* MATRÍCULA (Apenas para leitura visual) */}
-      <div className="mt-auto border-t border-slate-100 w-full text-center pt-3">
-        <p className="text-[10px] text-slate-500 uppercase font-semibold">Matrícula</p>
-        <p className="font-bold text-slate-800 text-lg">{dados.matricula || '--'}</p>
-      </div>
     </div>
   )
 }
 
 // O cartão oficial que vai pro papel na impressora
 function CartaoImpressao({ dados }: { dados: DadosCracha }) {
-  // 🔥 MUDANÇA PRINCIPAL: O QR Code agora tem apenas a matrícula!
+  // O QR Code tem apenas a matrícula
   const qrValue = dados.matricula.trim()
 
   return (
-    // Transformei em um layout vertical (5.5cm x 8.5cm), que é o padrão de crachá e fica perfeito com QR + Nome
-    <div className="w-[5.5cm] h-[8.5cm] bg-white text-black p-4 rounded-lg border border-dashed border-slate-400 flex flex-col items-center justify-between break-inside-avoid">
+    <div className="w-[5.5cm] h-[8.5cm] bg-white text-black p-4 rounded-lg border border-dashed border-slate-400 flex flex-col items-center justify-center break-inside-avoid">
       
       {/* NOME EM DESTAQUE NO TOPO */}
-      <div className="text-center w-full mt-2">
-        <h3 className="font-black text-sm uppercase leading-tight text-slate-900 line-clamp-2">
+      <div className="text-center w-full mb-6 mt-2">
+        <h3 className="font-black text-base uppercase leading-tight text-slate-900 line-clamp-3">
           {dados.nome}
         </h3>
       </div>
 
       {/* QR CODE BEM GRANDE NO CENTRO */}
-      <div className="p-2 border border-slate-200 rounded-lg bg-slate-50 flex justify-center w-full my-auto">
-        <QRCodeSVG value={qrValue} size={130} />
-      </div>
-
-      {/* MATRÍCULA NO RODAPÉ */}
-      <div className="text-center w-full border-t border-slate-200 pt-2 mb-1">
-        <p className="text-[9px] text-slate-500 uppercase font-bold">Matrícula</p>
-        <p className="font-bold text-slate-900 text-sm leading-none">{dados.matricula}</p>
+      <div className="p-2 border border-slate-200 rounded-lg bg-slate-50 flex justify-center w-full">
+        <QRCodeSVG value={qrValue} size={145} />
       </div>
       
     </div>
