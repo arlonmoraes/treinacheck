@@ -38,8 +38,8 @@ export default function NovoEvento() {
         .eq('id', user.id)
         .single()
 
-      if (error || !perfil || perfil.role !== 'admin') {
-        alert('🚫 Acesso negado! Apenas administradores podem criar novos eventos.')
+      if (error || !perfil || (perfil.role !== 'admin' && perfil.role !== 'responsavel')) {
+        alert('🚫 Acesso negado! Apenas administradores e responsáveis podem gerenciar eventos.')
         router.push('/eventos')
         return
       }

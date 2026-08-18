@@ -60,8 +60,8 @@ export default function Relatorios() {
       .order('data', { ascending: false })
 
     // 4. APLICA O FILTRO SE NÃO FOR GESTOR
-    // Se a role for diferente de 'gestor', ele só pode ver os próprios eventos.
-    if (role !== 'gestor') {
+    // Se a role for diferente de 'admin', ele só pode ver os próprios eventos.
+    if (role !== 'admin') {
       query = query.eq('usuario_id', user.id)
     }
 

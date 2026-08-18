@@ -33,7 +33,7 @@ export default function Eventos() {
   
   // 🛡️ Estados de Segurança
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [userRole, setUserRole] = useState<string>('user') // 👈 Guardamos o papel exato do usuário
 
   const tiposEvento = [
     'DDS',
@@ -53,27 +53,33 @@ export default function Eventos() {
     // 1. DESCOBRE QUEM ESTÁ LOGADO E O PERFIL
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (user) {
-      setCurrentUserId(user.id)
-      
-      const { data: perfil } = await supabase
-        .from('perfis')
-        .select('role')
-        .eq('id', user.id)
-        .single()
+    if (!user) return
 
-      if (perfil?.role === 'admin') {
-        setIsAdmin(true)
-      }
-    }
+    setCurrentUserId(user.id)
+    
+    const { data: perfil } = await supabase
+      .from('perfis')
+      .select('role')
+      .eq('id', user.id)
+      .single()
 
-    // 2. BUSCA TODOS OS EVENTOS
-    const { data, error } = await supabase
+    const role = perfil?.role || 'user'
+    setUserRole(role)
+
+    // 2. MONTA A BUSCA BASE (Traz tudo ordenado)
+    let query = supabase
       .from('eventos')
       .select('*')
-      .order('created_at', {
-        ascending: false,
-      })
+      .order('created_at', { ascending: false })
+
+    // 3. APLICA O FILTRO SE NÃO FOR ADMIN
+    // Se for 'responsavel' ou 'user', só traz os eventos criados por ele
+    if (role !== 'admin') {
+      query = query.eq('usuario_id', user.id)
+    }
+
+    // 4. EXECUTA A BUSCA DEFINITIVA
+    const { data, error } = await query
 
     if (error) {
       console.log(error)
@@ -155,13 +161,13 @@ export default function Eventos() {
               <p className="text-slate-400 mt-2">Gerencie os eventos</p>
             </div>
 
-            {/* 🛑 BOTÃO SÓ APARECE PARA ADMIN */}
-            {isAdmin && (
+            {/* 🛑 BOTÃO DE CRIAR (Aparece para admin OU responsavel) */}
+            {(userRole === 'admin' || userRole === 'responsavel') && (
               <Link href="/eventos/novo">
                 <button
                   className="
                     bg-blue-600 hover:bg-blue-700 transition-all px-5 py-3 
-                    rounded-2xl font-semibold shadow-lg
+                    rounded-2xl font-semibold shadow-lg text-white
                   "
                 >
                   + Criar novo evento
@@ -239,8 +245,8 @@ export default function Eventos() {
                     </button>
                   </Link>
 
-                  {/* 🛑 NOVA CONDIÇÃO DO BOTÃO EXCLUIR */}
-                  {isAdmin && (evento.usuario_id === currentUserId || !evento.usuario_id) && (
+                  {/* 🛑 BOTÃO EXCLUIR (Admin vê todos, Responsável vê só os dele) */}
+                  {(userRole === 'admin' || (userRole === 'responsavel' && evento.usuario_id === currentUserId)) && (
                     <button
                       onClick={() => excluirEvento(evento.id)}
                       className="bg-red-600 hover:bg-red-700 transition-all px-5 rounded-2xl font-semibold text-white"
