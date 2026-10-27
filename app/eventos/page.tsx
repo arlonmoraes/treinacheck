@@ -32,7 +32,7 @@ export default function Eventos() {
   const [filtros, setFiltros] = useState<string[]>([])
   
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [userRole, setUserRole] = useState<string>('user')
+  const [userRole, setUserRole] = useState<string>('usuario_comum')
 
   const tiposEvento = [
     'DDS',
@@ -55,21 +55,26 @@ export default function Eventos() {
 
     setCurrentUserId(user.id)
     
+    // Busca a role do usuário na tabela perfis
     const { data: perfil } = await supabase
       .from('perfis')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    const role = (perfil?.role || '').toLowerCase().trim()
+    const role = (perfil?.role || 'usuario_comum').toLowerCase().trim()
     setUserRole(role)
+
+    console.log("🔍 [DEBUG] ID do usuário:", user.id)
+    console.log("🔍 [DEBUG] Role tratada do usuário:", role)
 
     let query = supabase
       .from('eventos')
       .select('*')
       .order('created_at', { ascending: false })
 
-    // Se NÃO for admin (ou seja, for 'responsavel' ou outro), filtra apenas pelos eventos dele
+    // 🛡️ REGRA DE ISOLAMENTO RIGOROSA:
+    // Se for 'admin', vê tudo. Se for 'responsavel' ou 'usuario_comum', vê apenas os seus.
     if (role !== 'admin') {
       query = query.eq('usuario_id', user.id)
     }
@@ -149,10 +154,11 @@ export default function Eventos() {
           {/* TOPO */}
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
             <div>
-              <h1 className="text-4xl font-bold">📅 Eventos</h1>
+              <h1 className="text-4xl font-bold text-white">📅 Eventos</h1>
               <p className="text-slate-400 mt-2">Gerencie os eventos</p>
             </div>
 
+            {/* Apenas admin ou responsavel podem criar novos eventos */}
             {(userRole === 'admin' || userRole === 'responsavel') && (
               <Link href="/eventos/novo">
                 <button
@@ -236,6 +242,7 @@ export default function Eventos() {
                     </button>
                   </Link>
 
+                  {/* Admin exclui qualquer um. Responsável exclui apenas o dele. */}
                   {(userRole === 'admin' || (userRole === 'responsavel' && evento.usuario_id === currentUserId)) && (
                     <button
                       onClick={() => excluirEvento(evento.id)}
