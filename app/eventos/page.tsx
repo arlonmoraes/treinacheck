@@ -75,7 +75,7 @@ export default function Eventos() {
     // 3. APLICA O FILTRO SE NÃO FOR ADMIN
     // Se for 'responsavel' ou 'user', só traz os eventos criados por ele
     if (role !== 'admin') {
-      query = query.eq('user_id', user.id)
+      query = query.eq('usuario_id', user.id)
     }
 
     // 4. EXECUTA A BUSCA DEFINITIVA
