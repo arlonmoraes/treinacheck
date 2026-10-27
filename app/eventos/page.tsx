@@ -17,7 +17,7 @@ type Evento = {
   status?: string
   hora_inicio?: string
   hora_fim?: string
-  usuario_id?: string // 👈 Para checar quem é o dono do evento
+  usuario_id?: string
 }
 
 function formatarData(dataString: string) {
@@ -31,9 +31,8 @@ export default function Eventos() {
   const [busca, setBusca] = useState('')
   const [filtros, setFiltros] = useState<string[]>([])
   
-  // 🛡️ Estados de Segurança
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [userRole, setUserRole] = useState<string>('user') // 👈 Guardamos o papel exato do usuário
+  const [userRole, setUserRole] = useState<string>('user')
 
   const tiposEvento = [
     'DDS',
@@ -50,7 +49,6 @@ export default function Eventos() {
   }, [])
 
   async function carregarDados() {
-    // 1. DESCOBRE QUEM ESTÁ LOGADO E O PERFIL
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) return
@@ -63,36 +61,19 @@ export default function Eventos() {
       .eq('id', user.id)
       .single()
 
-    // Padroniza a role para letras minúsculas para evitar erro de digitação (Admin vs admin)
     const role = (perfil?.role || '').toLowerCase().trim()
     setUserRole(role)
 
-    console.log("🔍 Role tratada do usuário:", role) // Vai mostrar no F12 se é 'admin' ou 'responsavel'
-
-    // 2. MONTA A BUSCA BASE
     let query = supabase
       .from('eventos')
       .select('*')
       .order('created_at', { ascending: false })
 
-    // 3. APLICA O FILTRO SE NÃO FOR ADMIN
-    // Só vai mostrar tudo se o role for exatamente 'admin'
+    // Se NÃO for admin (ou seja, for 'responsavel' ou outro), filtra apenas pelos eventos dele
     if (role !== 'admin') {
       query = query.eq('usuario_id', user.id)
     }
 
-    const { data, error } = await query
-
-    if (error) {
-      console.log(error)
-      alert('Erro ao buscar eventos')
-      return
-    }
-
-    setEventos(data || [])
-  }
-
-    // 4. EXECUTA A BUSCA DEFINITIVA
     const { data, error } = await query
 
     if (error) {
@@ -118,7 +99,6 @@ export default function Eventos() {
 
     if (!confirmar) return
 
-    // Primeiro exclui as presenças atreladas a esse evento
     const { error: erroPresencas } = await supabase
       .from('presencas')
       .delete()
@@ -130,7 +110,6 @@ export default function Eventos() {
       return
     }
 
-    // Agora exclui o evento e pede para retornar o dado apagado (.select())
     const { data: eventoApagado, error } = await supabase
       .from('eventos')
       .delete()
@@ -143,14 +122,13 @@ export default function Eventos() {
       return
     }
 
-    // A MÁGICA PARA EVITAR O FALSO SUCESSO:
     if (!eventoApagado || eventoApagado.length === 0) {
       alert('🚫 Acesso Negado: Você não tem permissão para excluir este evento.')
       return
     }
 
     alert('✅ Evento excluído com sucesso!')
-    carregarDados() // Recarrega a lista
+    carregarDados()
   }
 
   const eventosFiltrados = eventos.filter((e) => {
@@ -175,7 +153,6 @@ export default function Eventos() {
               <p className="text-slate-400 mt-2">Gerencie os eventos</p>
             </div>
 
-            {/* 🛑 BOTÃO DE CRIAR (Aparece para admin OU responsavel) */}
             {(userRole === 'admin' || userRole === 'responsavel') && (
               <Link href="/eventos/novo">
                 <button
@@ -259,7 +236,6 @@ export default function Eventos() {
                     </button>
                   </Link>
 
-                  {/* 🛑 BOTÃO EXCLUIR (Admin vê todos, Responsável vê só os dele) */}
                   {(userRole === 'admin' || (userRole === 'responsavel' && evento.usuario_id === currentUserId)) && (
                     <button
                       onClick={() => excluirEvento(evento.id)}
