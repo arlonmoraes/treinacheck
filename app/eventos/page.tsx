@@ -63,20 +63,34 @@ export default function Eventos() {
       .eq('id', user.id)
       .single()
 
-    const role = perfil?.role || 'user'
+    // Padroniza a role para letras minúsculas para evitar erro de digitação (Admin vs admin)
+    const role = (perfil?.role || '').toLowerCase().trim()
     setUserRole(role)
 
-    // 2. MONTA A BUSCA BASE (Traz tudo ordenado)
+    console.log("🔍 Role tratada do usuário:", role) // Vai mostrar no F12 se é 'admin' ou 'responsavel'
+
+    // 2. MONTA A BUSCA BASE
     let query = supabase
       .from('eventos')
       .select('*')
       .order('created_at', { ascending: false })
 
     // 3. APLICA O FILTRO SE NÃO FOR ADMIN
-    // Se for 'responsavel' ou 'user', só traz os eventos criados por ele
+    // Só vai mostrar tudo se o role for exatamente 'admin'
     if (role !== 'admin') {
       query = query.eq('usuario_id', user.id)
     }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.log(error)
+      alert('Erro ao buscar eventos')
+      return
+    }
+
+    setEventos(data || [])
+  }
 
     // 4. EXECUTA A BUSCA DEFINITIVA
     const { data, error } = await query
