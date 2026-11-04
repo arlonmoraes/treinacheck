@@ -18,10 +18,11 @@ export default function NovoEvento() {
   const [exigirSelfie, setExigirSelfie] = useState(true)
   const [salvando, setSalvando] = useState(false)
   
-  // Estados para controle de segurança na tela
+  // Armazena o setor do usuário logado para carimbar no evento
+  const [userSetor, setUserSetor] = useState<string | null>(null)
   const [carregandoPerfil, setCarregandoPerfil] = useState(true)
 
-  // 🛡️ BLOQUEIO DE SEGURANÇA NA ENTRADA DA TELA
+  // 🛡️ BLOQUEIO DE SEGURANÇA E CAPTURA DE SETOR NA ENTRADA DA TELA
   useEffect(() => {
     async function verificarPermissao() {
       const { data: { user } } = await supabase.auth.getUser()
@@ -31,25 +32,28 @@ export default function NovoEvento() {
         return
       }
 
-      // Consulta a role do usuário na tabela 'perfis'
+      // Consulta a role e o setor do usuário na tabela 'perfis'
       const { data: perfil, error } = await supabase
         .from('perfis')
-        .select('role')
+        .select('role, setor')
         .eq('id', user.id)
         .single()
 
-      if (error || !perfil || (perfil.role !== 'admin' && perfil.role !== 'responsavel')) {
+      const role = (perfil?.role || '').toLowerCase().trim()
+
+      if (error || !perfil || (!role.includes('admin') && role !== 'responsavel')) {
         alert('🚫 Acesso negado! Apenas administradores e responsáveis podem gerenciar eventos.')
         router.push('/eventos')
         return
       }
 
-      // Se for admin, libera a tela removendo o carregando
+      // Salva o setor do usuário (ex: 'TI') para usar na hora de inserir o evento
+      setUserSetor(perfil.setor || 'Geral')
       setCarregandoPerfil(false)
     }
 
     verificarPermissao()
-  }, [])
+  }, [router])
 
   // PREFIXOS DOS EVENTOS
   function gerarPrefixo(tipo: string) {
@@ -104,8 +108,8 @@ export default function NovoEvento() {
       .from('eventos')
       .select('codigo_evento')
       .eq('tipo', tipo)
-      .order('created_at', { ascending: false }) // Pega o mais recente
-      .limit(1) // Traz apenas 1 resultado
+      .order('created_at', { ascending: false })
+      .limit(1)
 
     if (erroBusca) {
       console.log(erroBusca)
@@ -116,9 +120,7 @@ export default function NovoEvento() {
 
     let proximoNumero = 1
 
-    // Se já existe algum evento desse tipo, pega o número dele e soma +1
     if (ultimosEventos && ultimosEventos.length > 0 && ultimosEventos[0].codigo_evento) {
-      // Exemplo: "DDS-005" -> Quebra no "-" e vira ["DDS", "005"]
       const partes = ultimosEventos[0].codigo_evento.split('-')
       const ultimoNumero = parseInt(partes[1])
       
@@ -129,14 +131,15 @@ export default function NovoEvento() {
 
     const prefixo = gerarPrefixo(tipo)
     const codigoEvento = `${prefixo}-${String(proximoNumero).padStart(3, '0')}`
-    const codigo = crypto.randomUUID() // Esse é o ID único para a URL
+    const codigo = crypto.randomUUID()
 
-    // INSERT COM O ID DO USUÁRIO
+    // INSERT COM O ID DO USUÁRIO E O SETOR
     const { error } = await supabase
       .from('eventos')
       .insert([
         {
-          usuario_id: user.id, 
+          usuario_id: user.id,
+          setor: userSetor, // Carimba o evento com o setor do criador (ex: 'TI')
           titulo,
           tipo,
           codigo_evento: codigoEvento,
@@ -158,11 +161,10 @@ export default function NovoEvento() {
       return
     }
 
-    alert(`Evento criado: ${codigoEvento}`)
+    alert(`Evento criado com sucesso para o setor ${userSetor}: ${codigoEvento}`)
     router.push('/eventos')
   }
 
-  // Enquanto estiver checando se o usuário é comum ou admin, mostra tela de carregamento
   if (carregandoPerfil) {
     return (
       <div className="p-10 text-white min-h-screen bg-slate-950 flex items-center justify-center">
@@ -184,7 +186,7 @@ export default function NovoEvento() {
               ➕ Novo Evento
             </h1>
             <p className="text-slate-400 mt-2">
-              Cadastro de evento
+              Cadastro de evento para o setor: <span className="text-blue-400 font-semibold">{userSetor}</span>
             </p>
           </div>
 

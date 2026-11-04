@@ -18,6 +18,7 @@ type Evento = {
   hora_inicio?: string
   hora_fim?: string
   usuario_id?: string
+  setor?: string
 }
 
 function formatarData(dataString: string) {
@@ -32,7 +33,8 @@ export default function Eventos() {
   const [filtros, setFiltros] = useState<string[]>([])
   
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [userRole, setUserRole] = useState<string>('usuario_comum')
+  const [userRole, setUserRole] = useState<string>('comum')
+  const [userSetor, setUserSetor] = useState<string>('')
 
   const tiposEvento = [
     'DDS',
@@ -55,28 +57,40 @@ export default function Eventos() {
 
     setCurrentUserId(user.id)
     
-    // Busca a role do usuário na tabela perfis
+    // Busca a role e o setor do usuário na tabela perfis
     const { data: perfil } = await supabase
       .from('perfis')
-      .select('role')
+      .select('role, setor')
       .eq('id', user.id)
       .single()
 
-    const role = (perfil?.role || 'usuario_comum').toLowerCase().trim()
+    const role = (perfil?.role || 'comum').toLowerCase().trim()
+    const setor = (perfil?.setor || '').trim()
+
     setUserRole(role)
+    setUserSetor(setor)
 
     console.log("🔍 [DEBUG] ID do usuário:", user.id)
-    console.log("🔍 [DEBUG] Role tratada do usuário:", role)
+    console.log("🔍 [DEBUG] Role tratada:", role)
+    console.log("🔍 [DEBUG] Setor tratado:", setor)
 
     let query = supabase
       .from('eventos')
       .select('*')
       .order('created_at', { ascending: false })
 
-    // 🛡️ REGRA DE ISOLAMENTO RIGOROSA:
-    // Se for 'admin', vê tudo. Se for 'responsavel' ou 'usuario_comum', vê apenas os seus.
-    if (role !== 'admin') {
-      query = query.eq('usuario_id', user.id)
+    // 🛡️ REGRA DE ISOLAMENTO POR SETOR E ROLE:
+    // 1. Se for 'admin' (ou admin full), enxerga tudo.
+    // 2. Se NÃO for admin, filtra obrigatoriamente pelo setor do usuário.
+    const eAdmin = role.includes('admin')
+
+    if (!eAdmin) {
+      if (setor) {
+        query = query.eq('setor', setor)
+      } else {
+        // Se o usuário não tem setor cadastrado, não traz nada por segurança
+        query = query.eq('setor', 'SETOR_INEXISTENTE')
+      }
     }
 
     const { data, error } = await query
@@ -147,6 +161,9 @@ export default function Eventos() {
     return passouBusca && passouFiltro
   })
 
+  // Permissão de criação: Admin ou Responsável
+  const podeCriar = userRole.includes('admin') || userRole === 'responsavel'
+
   return (
     <Protegido>
       <LayoutAdmin>
@@ -155,11 +172,13 @@ export default function Eventos() {
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
             <div>
               <h1 className="text-4xl font-bold text-white">📅 Eventos</h1>
-              <p className="text-slate-400 mt-2">Gerencie os eventos</p>
+              <p className="text-slate-400 mt-2">
+                Setor atual: <span className="text-blue-400 font-semibold">{userSetor || 'Geral'}</span>
+              </p>
             </div>
 
             {/* Apenas admin ou responsavel podem criar novos eventos */}
-            {(userRole === 'admin' || userRole === 'responsavel') && (
+            {podeCriar && (
               <Link href="/eventos/novo">
                 <button
                   className="
@@ -204,56 +223,62 @@ export default function Eventos() {
 
           {/* GRID */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {eventosFiltrados.map((evento) => (
-              <div
-                key={evento.id}
-                className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl hover:scale-[1.02] transition-all"
-              >
-                {/* HEADER */}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-white">{evento.titulo}</h2>
-                    <p className="text-slate-400 mt-1">{evento.tipo}</p>
+            {eventosFiltrados.map((evento) => {
+              // Admin exclui qualquer um. Responsável exclui apenas os do seu próprio ID.
+              const podeExcluir =
+                userRole.includes('admin') ||
+                (userRole === 'responsavel' && evento.usuario_id === currentUserId)
+
+              return (
+                <div
+                  key={evento.id}
+                  className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl hover:scale-[1.02] transition-all"
+                >
+                  {/* HEADER */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-white">{evento.titulo}</h2>
+                      <p className="text-slate-400 mt-1">{evento.tipo} • <span className="text-xs text-blue-400 font-medium">{evento.setor || 'Geral'}</span></p>
+                    </div>
+                    <StatusBadge evento={evento} />
                   </div>
-                  <StatusBadge evento={evento} />
-                </div>
 
-                {/* INFOS */}
-                <div className="space-y-3 mt-6">
-                  <Info
-                    titulo="🔖 Código Evento"
-                    valor={evento.codigo_evento || 'Sem código'}
-                  />
-                  
-                  <Info titulo="📅 Data" valor={formatarData(evento.data)} />
-                  <Info 
-                    titulo="🕒 Horário" 
-                    valor={`${evento.hora_inicio || '--:--'} às ${evento.hora_fim || '--:--'}`} 
-                  />
-                  
-                  <Info titulo="👨‍🏫 Responsável" valor={evento.instrutor} />
-                </div>
+                  {/* INFOS */}
+                  <div className="space-y-3 mt-6">
+                    <Info
+                      titulo="🔖 Código Evento"
+                      valor={evento.codigo_evento || 'Sem código'}
+                    />
+                    
+                    <Info titulo="📅 Data" valor={formatarData(evento.data)} />
+                    <Info 
+                      titulo="🕒 Horário" 
+                      valor={`${evento.hora_inicio || '--:--'} às ${evento.hora_fim || '--:--'}`} 
+                    />
+                    
+                    <Info titulo="👨‍🏫 Responsável" valor={evento.instrutor} />
+                  </div>
 
-                {/* BOTÕES */}
-                <div className="flex gap-3 mt-8">
-                  <Link href={`/eventos/${evento.id}`} className="flex-1">
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 transition-all py-3 rounded-2xl font-semibold text-white">
-                      Abrir
-                    </button>
-                  </Link>
+                  {/* BOTÕES */}
+                  <div className="flex gap-3 mt-8">
+                    <Link href={`/eventos/${evento.id}`} className="flex-1">
+                      <button className="w-full bg-blue-600 hover:bg-blue-700 transition-all py-3 rounded-2xl font-semibold text-white">
+                        Abrir
+                      </button>
+                    </Link>
 
-                  {/* Admin exclui qualquer um. Responsável exclui apenas o dele. */}
-                  {(userRole === 'admin' || (userRole === 'responsavel' && evento.usuario_id === currentUserId)) && (
-                    <button
-                      onClick={() => excluirEvento(evento.id)}
-                      className="bg-red-600 hover:bg-red-700 transition-all px-5 rounded-2xl font-semibold text-white"
-                    >
-                      Excluir
-                    </button>
-                  )}
+                    {podeExcluir && (
+                      <button
+                        onClick={() => excluirEvento(evento.id)}
+                        className="bg-red-600 hover:bg-red-700 transition-all px-5 rounded-2xl font-semibold text-white"
+                      >
+                        Excluir
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {/* VAZIO */}
