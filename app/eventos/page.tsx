@@ -65,12 +65,11 @@ export default function Eventos() {
       .single()
 
     const role = (perfil?.role || 'comum').toLowerCase().trim()
-    const setor = (perfil?.setor || '').trim()
+    const setor = (perfil?.setor || '').trim().toUpperCase() // Padroniza em maiúsculo para comparar
 
     setUserRole(role)
     setUserSetor(setor)
 
-    console.log("🔍 [DEBUG] ID do usuário:", user.id)
     console.log("🔍 [DEBUG] Role tratada:", role)
     console.log("🔍 [DEBUG] Setor tratado:", setor)
 
@@ -79,16 +78,32 @@ export default function Eventos() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    // 🛡️ REGRA DE ISOLAMENTO POR SETOR E ROLE:
-    // 1. Se for 'admin' (ou admin full), enxerga tudo.
-    // 2. Se NÃO for admin, filtra obrigatoriamente pelo setor do usuário.
+    // 🛡️ REGRA DE ISOLAMENTO INTELIGENTE POR SETOR E TIPO:
     const eAdmin = role.includes('admin')
 
     if (!eAdmin) {
-      if (setor) {
+      // Definimos quais tipos de eventos globais este setor pode enxergar além do seu próprio setor
+      let tiposGlobaisPermitidos: string[] = []
+
+      if (setor === 'EHS') {
+        tiposGlobaisPermitidos = ['DDS', 'Integração', 'Ginástica Laboral']
+      } else if (setor === 'QUALIDADE') {
+        tiposGlobaisPermitidos = ['DDQ', 'Gestão de Mudança']
+      } else if (setor === 'RH') {
+        tiposGlobaisPermitidos = ['Treinamento', 'Integração']
+      }
+
+      // Se o setor tem permissão de ver tipos específicos globalmente OU o seu próprio setor
+      if (tiposGlobaisPermitidos.length > 0) {
+        // Traz eventos que sejam do setor dele OU cujos tipos pertençam à lista global permitida
+        // No Supabase, fazemos uma query combinada (Setor Igual OU Tipo In List)
+        const tiposStr = tiposGlobaisPermitidos.join(',')
+        query = query.or(`setor.eq.${setor},tipo.in.(${tiposStr})`)
+      } else if (setor) {
+        // Demais setores (ex: TI): veem estritamente apenas o que é do seu setor
         query = query.eq('setor', setor)
       } else {
-        // Se o usuário não tem setor cadastrado, não traz nada por segurança
+        // Sem setor cadastrado, bloqueia por segurança
         query = query.eq('setor', 'SETOR_INEXISTENTE')
       }
     }
@@ -161,7 +176,6 @@ export default function Eventos() {
     return passouBusca && passouFiltro
   })
 
-  // Permissão de criação: Admin ou Responsável
   const podeCriar = userRole.includes('admin') || userRole === 'responsavel'
 
   return (
@@ -177,7 +191,6 @@ export default function Eventos() {
               </p>
             </div>
 
-            {/* Apenas admin ou responsavel podem criar novos eventos */}
             {podeCriar && (
               <Link href="/eventos/novo">
                 <button
@@ -224,7 +237,6 @@ export default function Eventos() {
           {/* GRID */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {eventosFiltrados.map((evento) => {
-              // Admin exclui qualquer um. Responsável exclui apenas os do seu próprio ID.
               const podeExcluir =
                 userRole.includes('admin') ||
                 (userRole === 'responsavel' && evento.usuario_id === currentUserId)
@@ -238,7 +250,9 @@ export default function Eventos() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h2 className="text-2xl font-bold text-white">{evento.titulo}</h2>
-                      <p className="text-slate-400 mt-1">{evento.tipo} • <span className="text-xs text-blue-400 font-medium">{evento.setor || 'Geral'}</span></p>
+                      <p className="text-slate-400 mt-1">
+                        {evento.tipo} • <span className="text-xs text-blue-400 font-medium">Setor Criador: {evento.setor || 'Geral'}</span>
+                      </p>
                     </div>
                     <StatusBadge evento={evento} />
                   </div>
