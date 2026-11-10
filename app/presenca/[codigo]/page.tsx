@@ -87,12 +87,7 @@ export default function RegistrarPresenca() {
       setSalvando(false)
       return
     }
-
-    if (evento.status === 'Encerrado') {
-      alert('Evento encerrado')
-      return
-    }
-
+    
     if (!nome || !setor || !empresa) {
       alert('Preencha todos os campos')
       return
