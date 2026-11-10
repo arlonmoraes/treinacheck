@@ -21,6 +21,7 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
+  status: string // Certifique-se de que o status faz parte do tipo
   exigir_selfie: boolean
 }
 
@@ -145,12 +146,20 @@ export default function EventoDetalhe() {
     }
   }
 
-  /* LÓGICA DO MODO SCANNER ATUALIZADA (COM FILTRO, SOM E OFFLINE) */
+  /* LÓGICA DO MODO SCANNER ATUALIZADA (COM TRAVA DE STATUS DO EVENTO) */
   async function onScanCracha(texto: string) {
     if (scaneando) return
     setScaneando(true)
 
     try {
+      // 🛑 TRAVA DE STATUS: Impede leitura se o evento não estiver Aberto
+      if (evento && evento.status !== 'Aberto') {
+        emitirBip('erro')
+        setFeedbackScan(`❌ Evento fechado (Status: ${evento.status})`)
+        setTimeout(() => { setScaneando(false); setFeedbackScan(''); }, 3000)
+        return
+      }
+
       const dados = JSON.parse(texto)
 
       if (!dados.nome || !dados.matricula) {
@@ -223,22 +232,17 @@ export default function EventoDetalhe() {
   function exportarCSV() {
     if (!evento) return
     try {
-      // \uFEFF força o Excel a abrir com acentuação correta em Português
       let csvContent = "\uFEFF";
-      
-      // Adiciona a ficha técnica do evento no topo da planilha
       csvContent += `NOME DO EVENTO:;${evento.titulo}\n`;
       csvContent += `TIPO DE EVENTO:;${evento.tipo}\n`;
       csvContent += `INSTRUTOR / RESPONSÁVEL:;${evento.instrutor}\n`;
       csvContent += `DATA DO EVENTO:;${evento.data}\n`;
       csvContent += `TOTAL DE PARTICIPANTES:;${presencasFiltradas.length}\n`;
-      csvContent += `\n`; // Linha em branco para separar as informações da listagem
+      csvContent += `\n`;
       
-      // Cabeçalho dos dados dos colaboradores
       const cabecalhoColunas = ['Nome', 'Matrícula', 'Setor', 'Centro de Custo', 'Empresa', 'Data/Hora'];
       csvContent += cabecalhoColunas.join(';') + '\n';
       
-      // Adiciona as linhas dos colaboradores presentes
       presencasFiltradas.forEach((p) => {
         const linha = [
           p.nome || '', 
@@ -248,7 +252,6 @@ export default function EventoDetalhe() {
           p.empresa || '',
           p.data_hora ? new Date(p.data_hora).toLocaleString() : '',
         ];
-        // Envolve em aspas duplas para evitar problemas com nomes compostos ou que contenham pontos/vírgulas
         csvContent += linha.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';') + '\n';
       });
 
@@ -273,19 +276,15 @@ export default function EventoDetalhe() {
       const autoTable = (await import('jspdf-autotable')).default
       const doc = new jsPDF()
       
-      // Configuração estilizada do Título
       doc.setFont('Helvetica', 'bold')
       doc.setFontSize(18)
       doc.setTextColor(33, 43, 54)
 
-      // Quebra o texto automaticamente se ele passar do limite lateral da folha (180mm)
       const linhasTitulo = doc.splitTextToSize(`Relatório - ${evento.titulo}`, 180)
       doc.text(linhasTitulo, 14, 20)
 
-      // Calcula o recuo vertical dinâmico com base em quantas linhas o título ocupou
       let espacamentoY = 20 + (linhasTitulo.length * 7) + 5
 
-      // Subtítulos e metadados do evento
       doc.setFont('Helvetica', 'normal')
       doc.setFontSize(11)
       doc.setTextColor(100, 116, 139)
@@ -295,7 +294,7 @@ export default function EventoDetalhe() {
       doc.text(`Instrutor: ${evento.instrutor}`, 14, espacamentoY)
       espacamentoY += 8
       doc.text(`Data: ${evento.data}`, 14, espacamentoY)
-      espacamentoY += 12 // Espaço extra antes de desenhar a tabela
+      espacamentoY += 12
 
       autoTable(doc, {
         startY: espacamentoY,
@@ -305,7 +304,7 @@ export default function EventoDetalhe() {
           p.data_hora ? new Date(p.data_hora).toLocaleTimeString() : '',
         ]),
         theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235] } // Azul corporativo combinando com o app
+        headStyles: { fillColor: [37, 99, 235] }
       })
 
       doc.save(`relatorio-${evento.titulo.replace(/\s+/g, '_')}.pdf`)
@@ -360,7 +359,7 @@ export default function EventoDetalhe() {
                 </div>
               </div>
 
-              /* MODO SCANNER */
+              {/* MODO SCANNER */}
               <div className="bg-slate-900 border border-blue-900/50 rounded-3xl p-5 sm:p-8 shadow-2xl">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <h2 className="text-xl font-bold text-white flex items-center gap-2">📸 Modo Scanner (Crachás)</h2>

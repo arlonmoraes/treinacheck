@@ -82,6 +82,12 @@ export default function RegistrarPresenca() {
   async function registrarPresenca() {
     if (!evento) return
 
+    if (evento.status !== 'Aberto') {
+      alert('Este evento não está aberto para registro (Status atual: ${evento.status})')
+      setSalvando(false)
+      return
+    }
+
     if (evento.status === 'Encerrado') {
       alert('Evento encerrado')
       return
