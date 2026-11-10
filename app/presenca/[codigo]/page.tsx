@@ -82,12 +82,14 @@ export default function RegistrarPresenca() {
   async function registrarPresenca() {
     if (!evento) return
 
-    if (evento.status !== 'Aberto') {
-      alert('Este evento não está aberto para registro (Status atual: ${evento.status})')
+    // 🛑 TRAVA RIGOROSA DE STATUS À PROVA DE FALHAS
+    const statusAtual = String(evento.status || '').trim().toUpperCase()
+    if (statusAtual !== 'ABERTO') {
+      alert(`Este evento não está aberto para registro (Status atual: ${evento.status})`)
       setSalvando(false)
       return
     }
-    
+
     if (!nome || !setor || !empresa) {
       alert('Preencha todos os campos')
       return
