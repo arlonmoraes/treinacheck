@@ -86,6 +86,34 @@ export default function EventoDetalhe() {
     setLoading(false)
   }
 
+  /* VERIFICA O STATUS REAL DO EVENTO ANTES DE REGISTRAR PRESENÇA */
+  async function verificarEventoAberto(): Promise<boolean> {
+    if (!evento?.id) return false
+
+    // Sem internet, só permite guardar localmente se o último status carregado era ABERTO.
+    // A sincronização sempre fará uma nova consulta ao servidor.
+    if (!navigator.onLine) {
+      return String(evento.status || '').trim().toUpperCase() === 'ABERTO'
+    }
+
+    const { data, error } = await supabase
+      .from('eventos')
+      .select('status')
+      .eq('id', evento.id)
+      .single()
+
+    if (error || !data) {
+      console.error('Erro ao verificar status do evento:', error)
+      return false
+    }
+
+    setEvento((anterior) =>
+      anterior ? { ...anterior, status: data.status } : anterior
+    )
+
+    return String(data.status || '').trim().toUpperCase() === 'ABERTO'
+  }
+
   /* PASSO 1: GERADOR DE SONS NATIVOS */
   function emitirBip(tipo: 'sucesso' | 'aviso' | 'erro') {
     try {
@@ -129,6 +157,13 @@ export default function EventoDetalhe() {
 
   async function sincronizarFilaOffline() {
     if (!navigator.onLine || !evento) return
+
+    // Confere novamente no banco: o evento pode ter sido fechado enquanto estava offline.
+    const eventoAberto = await verificarEventoAberto()
+    if (!eventoAberto) {
+      alert('Sincronização bloqueada: o evento não está aberto para registro de presença. Os registros continuam guardados neste dispositivo.')
+      return
+    }
     
     const fila = obterFilaOffline()
     if (fila.length === 0) return
@@ -149,12 +184,15 @@ export default function EventoDetalhe() {
     setScaneando(true)
 
     try {
-      // 🛑 TRAVA RIGOROSA: Impede leitura no scanner se o evento não estiver ABERTO
-      const statusAtual = String(evento?.status || '').trim().toUpperCase()
-      if (statusAtual !== 'ABERTO') {
+      // Consulta o status atualizado no banco antes de aceitar o QR Code.
+      const eventoAberto = await verificarEventoAberto()
+      if (!eventoAberto) {
         emitirBip('erro')
-        setFeedbackScan(`❌ Bloqueado! Status: ${evento?.status}`)
-        setTimeout(() => { setScaneando(false); setFeedbackScan(''); }, 3000)
+        setFeedbackScan('❌ Presença bloqueada! O evento não está aberto para registro.')
+        setTimeout(() => {
+          setScaneando(false)
+          setFeedbackScan('')
+        }, 3000)
         return
       }
 
