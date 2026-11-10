@@ -19,7 +19,7 @@ export default function GeradorCrachas() {
   const [nome, setNome] = useState('')
   const [matricula, setMatricula] = useState('')
   const [setor, setSetor] = useState('')
-  const [empresa, setEmpresa] = useState('JAC')
+  const [empresa, setEmpresa] = useState('BBA')
 
   // Estados - Lote
   const [listaLote, setListaLote] = useState<DadosCracha[]>([])
@@ -77,7 +77,7 @@ export default function GeradorCrachas() {
           nome: colunas[idxNome] || '',
           matricula: colunas[idxMatricula] || '',
           setor: idxSetor !== -1 ? colunas[idxSetor] : '',
-          empresa: idxEmpresa !== -1 ? colunas[idxEmpresa] : 'JAC'
+          empresa: idxEmpresa !== -1 ? colunas[idxEmpresa] : 'BBA'
         })
       }
 
@@ -130,9 +130,8 @@ export default function GeradorCrachas() {
                   <div>
                     <label className="text-sm text-slate-400 block mb-2 font-medium">Empresa</label>
                     <select value={empresa} onChange={(e) => setEmpresa(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 outline-none text-white focus:border-blue-500 transition-all">
-                      <option value="JAC">JAC</option>
-                      <option value="BEC">BEC</option>
                       <option value="BBA">BBA</option>
+                      <option value="BEC">BEC</option>
                       <option value="Outros">Outros</option>
                     </select>
                   </div>

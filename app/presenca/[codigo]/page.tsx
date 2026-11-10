@@ -343,7 +343,7 @@ export default function RegistrarPresenca() {
             className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4"
           >
             <option value="">Selecione a empresa</option>
-            <option>JAC</option>
+            <option>BBA</option>
             <option>BEC</option>
             <option>Outros</option>
           </select>

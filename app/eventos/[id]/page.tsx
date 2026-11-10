@@ -420,7 +420,7 @@ export default function EventoDetalhe() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <select value={filtroEmpresa} onChange={(e) => setFiltroEmpresa(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-xl p-3 text-white text-sm">
                 <option value="">Todas empresas</option>
-                <option value="JAC">JAC</option>
+                <option value="BBA">BBA</option>
                 <option value="BEC">BEC</option>
                 <option value="Outros">Outros</option>
               </select>
