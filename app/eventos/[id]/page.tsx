@@ -21,7 +21,7 @@ type Evento = {
   data: string
   instrutor: string
   codigo: string
-  status: string // Certifique-se de que o status faz parte do tipo
+  status: string
   exigir_selfie: boolean
 }
 
@@ -86,7 +86,7 @@ export default function EventoDetalhe() {
     setLoading(false)
   }
 
-  /* PASSO 1: GERADOR DE SONS NATIVOS (Sem precisar de arquivos .mp3) */
+  /* PASSO 1: GERADOR DE SONS NATIVOS */
   function emitirBip(tipo: 'sucesso' | 'aviso' | 'erro') {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
@@ -96,17 +96,17 @@ export default function EventoDetalhe() {
       gain.connect(ctx.destination)
 
       if (tipo === 'sucesso') {
-        osc.frequency.setValueAtTime(880, ctx.currentTime) // Som agudo de bip
+        osc.frequency.setValueAtTime(880, ctx.currentTime)
         gain.gain.setValueAtTime(0.1, ctx.currentTime)
         osc.start()
         osc.stop(ctx.currentTime + 0.1)
       } else if (tipo === 'aviso') {
-        osc.frequency.setValueAtTime(440, ctx.currentTime) // Som médio de alerta
+        osc.frequency.setValueAtTime(440, ctx.currentTime)
         gain.gain.setValueAtTime(0.1, ctx.currentTime)
         osc.start()
         osc.stop(ctx.currentTime + 0.2)
       } else {
-        osc.frequency.setValueAtTime(150, ctx.currentTime) // Som grave de erro/buzina
+        osc.frequency.setValueAtTime(150, ctx.currentTime)
         gain.gain.setValueAtTime(0.1, ctx.currentTime)
         osc.start()
         osc.stop(ctx.currentTime + 0.3)
@@ -133,9 +133,6 @@ export default function EventoDetalhe() {
     const fila = obterFilaOffline()
     if (fila.length === 0) return
 
-    console.log(`Sincronizando ${fila.length} presenças guardadas offline...`)
-
-    // Envia lote por lote pro Supabase
     const { error } = await supabase.from('presencas').insert(fila)
 
     if (!error) {
@@ -146,17 +143,17 @@ export default function EventoDetalhe() {
     }
   }
 
-  /* LÓGICA DO MODO SCANNER ATUALIZADA (COM TRAVA DE STATUS DO EVENTO) */
+  /* LÓGICA DO MODO SCANNER COM TRAVA RIGOROSA DE STATUS */
   async function onScanCracha(texto: string) {
     if (scaneando) return
     setScaneando(true)
 
     try {
-      // 🛑 TRAVA À PROVA DE FALHAS NO SCANNER
+      // 🛑 TRAVA RIGOROSA: Impede leitura no scanner se o evento não estiver ABERTO
       const statusAtual = String(evento?.status || '').trim().toUpperCase()
       if (statusAtual !== 'ABERTO') {
         emitirBip('erro')
-        setFeedbackScan(`❌ Evento fechado (Status: ${evento?.status})`)
+        setFeedbackScan(`❌ Bloqueado! Status: ${evento?.status}`)
         setTimeout(() => { setScaneando(false); setFeedbackScan(''); }, 3000)
         return
       }
@@ -167,7 +164,6 @@ export default function EventoDetalhe() {
         throw new Error('Invalido')
       }
 
-      // 1. Evita Duplicidade (checa na lista atual da tela e na fila offline)
       const jaNaTela = presencas.find((p) => p.matricula === String(dados.matricula))
       const jaNoOffline = obterFilaOffline().find((p) => p.matricula === String(dados.matricula))
 
@@ -189,7 +185,6 @@ export default function EventoDetalhe() {
         foto_url: null,
       }
 
-      // 2. Se estiver SEM INTERNET, guarda no cofre
       if (!navigator.onLine) {
         const filaAtual = obterFilaOffline()
         filaAtual.push(novaPresenca)
@@ -203,7 +198,6 @@ export default function EventoDetalhe() {
         return
       }
 
-      // 3. Se tiver internet, manda normal pro Supabase
       const { error } = await supabase.from('presencas').insert([novaPresenca])
       if (error) throw error
 
@@ -229,7 +223,6 @@ export default function EventoDetalhe() {
     return empresaOk && tipoOk
   })
 
-  /* CSV MELHORADO COM CABEÇALHO INTERNO */
   function exportarCSV() {
     if (!evento) return
     try {
@@ -238,19 +231,14 @@ export default function EventoDetalhe() {
       csvContent += `TIPO DE EVENTO:;${evento.tipo}\n`;
       csvContent += `INSTRUTOR / RESPONSÁVEL:;${evento.instrutor}\n`;
       csvContent += `DATA DO EVENTO:;${evento.data}\n`;
-      csvContent += `TOTAL DE PARTICIPANTES:;${presencasFiltradas.length}\n`;
-      csvContent += `\n`;
+      csvContent += `TOTAL DE PARTICIPANTES:;${presencasFiltradas.length}\n\n`;
       
       const cabecalhoColunas = ['Nome', 'Matrícula', 'Setor', 'Centro de Custo', 'Empresa', 'Data/Hora'];
       csvContent += cabecalhoColunas.join(';') + '\n';
       
       presencasFiltradas.forEach((p) => {
         const linha = [
-          p.nome || '', 
-          p.matricula || '', 
-          p.setor || '', 
-          p.centro_custo || '', 
-          p.empresa || '',
+          p.nome || '', p.matricula || '', p.setor || '', p.centro_custo || '', p.empresa || '',
           p.data_hora ? new Date(p.data_hora).toLocaleString() : '',
         ];
         csvContent += linha.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';') + '\n';
@@ -270,7 +258,6 @@ export default function EventoDetalhe() {
     }
   }
 
-  /* PDF MELHORADO COM QUEBRA AUTOMÁTICA DE LINHA NO TÍTULO */
   async function exportarPDF() {
     if (!evento) return
     try {
@@ -330,7 +317,6 @@ export default function EventoDetalhe() {
       <LayoutAdmin>
         <div className="space-y-6 p-2 sm:p-0">
           
-          {/* HEADER COM STATUS OFFLINE SE HOUVER */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold text-white break-words">🎯 {evento.titulo}</h1>
