@@ -112,30 +112,25 @@ export default function RegistrarPresenca() {
     }
 
     setSalvando(true)
-    setMensagem('Buscando funcionário...')
+    setMensagem('Verificando funcionário...')
 
     const nomeDigitado = nome.trim()
 
-    // 1. BUSCA POR APROXIMAÇÃO NO SUPABASE (.ilike)
-    // O '%texto%' significa que vai buscar o termo em qualquer parte do nome ignorando maiúsculas/minúsculas
-    const { data: correspondentes, error: erroBusca } = await supabase
-      .from('funcionarios')
-      .select('*')
-      .ilike('nome', `%${nomeDigitado}%`)
+    // Divide o texto digitado em palavras para buscar partes do nome de forma inteligente
+    const palavras = nomeDigitado.split(/\s+/)
+    let query = supabase.from('funcionarios').select('*')
+    palavras.forEach((palavra) => {
+      query = query.ilike('nome', `%${palavra}%`)
+    })
 
-    if (erroBusca || !correspondentes || correspondentes.length === 0) {
-      setSalvando(false)
-      setMensagem('')
-      alert('Funcionário não encontrado com este nome. Digite novamente.')
-      return
-    }
+    const { data: correspondentes } = await query
 
     let idParaSalvar = null
     let matriculaParaSalvar = null
-    let nomeParaSalvar = nome.trim() // Padrão se nada for achado, mas vamos atualizar abaixo
+    let nomeParaSalvar = nome.trim()
 
-    // SE ACHOU MAIS DE UM NOME QUE COMBINA (Ex: digitou "Arlo" e achou "Arlon" e "Carlos")
-    if (correspondentes.length > 1) {
+    // SE ACHOU HOMÔNIMOS (Mais de 1 funcionário fixo com esse nome/termo)
+    if (correspondentes && correspondentes.length > 1) {
       if (!funcionarioIdCorreto) {
         setHomonimos(correspondentes)
         setSalvando(false)
@@ -148,19 +143,26 @@ export default function RegistrarPresenca() {
         if (escolhido) {
           idParaSalvar = escolhido.id
           matriculaParaSalvar = escolhido.matricula
-          nomeParaSalvar = escolhido.nome // Grava o nome certinho do banco (ex: "Arlon")
+          nomeParaSalvar = escolhido.nome
         }
       }
-    } else if (correspondentes.length === 1) {
-      // Se achou exatamente 1 pessoa por aproximação, puxa os dados dela automaticamente
+    } 
+    // SE ACHOU EXATAMENTE 1 FUNCIONÁRIO FIXO
+    else if (correspondentes && correspondentes.length === 1) {
       idParaSalvar = correspondentes[0].id
       matriculaParaSalvar = correspondentes[0].matricula
-      nomeParaSalvar = correspondentes[0].nome // Corrige o nome automaticamente (ex: de "Arlo" para "Arlon")
+      nomeParaSalvar = correspondentes[0].nome
+    } 
+    // SE NÃO ACHOU NINGUÉM NA TABELA DE FUNCIONÁRIOS (É um Terceiro / Visitante eventual!)
+    else {
+      idParaSalvar = null
+      matriculaParaSalvar = null
+      nomeParaSalvar = nome.trim() // Permite seguir o cadastro normalmente como avulso
     }
 
     setMensagem('Validando localização...')
 
-    // 2. VALIDAÇÃO DE GPS E UPLOAD DE FOTO
+    // VALIDAÇÃO DE GPS E UPLOAD DE FOTO
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const latitudeUsuario = pos.coords.latitude
@@ -219,7 +221,7 @@ export default function RegistrarPresenca() {
           {
             evento_id: evento.id,
             funcionario_id: idParaSalvar || null,
-            nome: nomeParaSalvar, // Salva o nome correto obtido do banco de dados
+            nome: nomeParaSalvar,
             matricula: matriculaParaSalvar || null,
             setor: setor.trim(),
             empresa: empresa === 'Outros' ? empresaOutra.trim() : empresa,
@@ -309,7 +311,7 @@ export default function RegistrarPresenca() {
             }}
           />
 
-          {/* CAIXA DE SELEÇÃO DE HOMÔNIMOS / APROXIMAÇÃO */}
+          {/* CAIXA DE SELEÇÃO DE HOMÔNIMOS */}
           {homonimos.length > 1 && (
             <div className="bg-orange-500/10 border border-orange-500/50 rounded-2xl p-5 shadow-inner">
               <label className="block mb-3 font-semibold text-orange-400">
@@ -340,7 +342,7 @@ export default function RegistrarPresenca() {
           <select
             value={empresa}
             onChange={(e) => setEmpresa(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4"
+            className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 text-white outline-none"
           >
             <option value="">Selecione a empresa</option>
             <option>BBA</option>
@@ -382,7 +384,7 @@ export default function RegistrarPresenca() {
           <button
             onClick={registrarPresenca}
             disabled={salvando}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all py-4 rounded-2xl text-lg font-bold shadow-2xl"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-all py-4 rounded-2xl text-lg font-bold shadow-2xl cursor-pointer"
           >
             {salvando ? 'Processando...' : 'Confirmar presença'}
           </button>
@@ -407,7 +409,7 @@ function Campo(props: any) {
   return (
     <input
       {...props}
-      className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 outline-none focus:border-blue-500 transition-all"
+      className="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 outline-none focus:border-blue-500 transition-all text-white"
     />
   )
 }
