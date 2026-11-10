@@ -152,10 +152,11 @@ export default function EventoDetalhe() {
     setScaneando(true)
 
     try {
-      // 🛑 TRAVA DE STATUS: Impede leitura se o evento não estiver Aberto
-      if (evento && evento.status !== 'Aberto') {
+      // 🛑 TRAVA À PROVA DE FALHAS NO SCANNER
+      const statusAtual = String(evento?.status || '').trim().toUpperCase()
+      if (statusAtual !== 'ABERTO') {
         emitirBip('erro')
-        setFeedbackScan(`❌ Evento fechado (Status: ${evento.status})`)
+        setFeedbackScan(`❌ Evento fechado (Status: ${evento?.status})`)
         setTimeout(() => { setScaneando(false); setFeedbackScan(''); }, 3000)
         return
       }
