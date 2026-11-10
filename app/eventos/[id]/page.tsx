@@ -90,11 +90,9 @@ export default function EventoDetalhe() {
   async function verificarEventoAberto(): Promise<boolean> {
     if (!evento?.id) return false
 
-    // Sem internet, só permite guardar localmente se o último status carregado era ABERTO.
-    // A sincronização sempre fará uma nova consulta ao servidor.
-    if (!navigator.onLine) {
-      return String(evento.status || '').trim().toUpperCase() === 'ABERTO'
-    }
+    // Sem conexão não é possível confirmar o status atual no servidor.
+    // Por segurança, não autoriza registrar nem enfileirar novas presenças offline.
+    if (!navigator.onLine) return false
 
     const { data, error } = await supabase
       .from('eventos')
@@ -223,16 +221,14 @@ export default function EventoDetalhe() {
         foto_url: null,
       }
 
+      // Sem conexão não é possível confirmar se o evento continua aberto.
       if (!navigator.onLine) {
-        const filaAtual = obterFilaOffline()
-        filaAtual.push(novaPresenca)
-        localStorage.setItem(`offline_event_${evento?.id}`, JSON.stringify(filaAtual))
-        
-        emitirBip('sucesso')
-        setFeedbackScan(`📶 Offline! Guardado no celular: ${dados.nome}`)
-        atualizarContagemOffline()
-        
-        setTimeout(() => { setScaneando(false); setFeedbackScan(''); }, 2000)
+        emitirBip('erro')
+        setFeedbackScan('❌ Sem internet. Não foi possível confirmar se o evento está aberto.')
+        setTimeout(() => {
+          setScaneando(false)
+          setFeedbackScan('')
+        }, 3000)
         return
       }
 

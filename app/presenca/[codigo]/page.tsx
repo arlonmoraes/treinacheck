@@ -79,23 +79,52 @@ export default function RegistrarPresenca() {
     setEvento(data)
   }
 
-  async function registrarPresenca() {
-    if (!evento) return
+  async function buscarEventoAtual(): Promise<Evento | null> {
+    if (!evento?.id || !navigator.onLine) return null
 
-    // 🛑 TRAVA RIGOROSA DE STATUS À PROVA DE FALHAS
-    const statusAtual = String(evento.status || '').trim().toUpperCase()
-    if (statusAtual !== 'ABERTO') {
-      alert(`Este evento não está aberto para registro (Status atual: ${evento.status})`)
-      setSalvando(false)
-      return
+    const { data, error } = await supabase
+      .from('eventos')
+      .select('*')
+      .eq('id', evento.id)
+      .single()
+
+    if (error || !data) {
+      console.error('Não foi possível consultar o evento atualizado:', error)
+      return null
     }
 
-    if (!nome || !setor || !empresa) {
+    setEvento(data as Evento)
+    return data as Evento
+  }
+
+  function eventoEstaNoPeriodo(ev: Evento): boolean {
+    const agora = new Date()
+    const inicio = new Date(`${ev.data}T${ev.hora_inicio}`)
+    const fim = new Date(`${ev.data}T${ev.hora_fim}`)
+    return !Number.isNaN(inicio.getTime()) &&
+      !Number.isNaN(fim.getTime()) &&
+      agora >= inicio &&
+      agora <= fim
+  }
+
+  function mostrarBloqueioEvento(ev: Evento | null) {
+    const status = ev?.status || 'indisponível'
+    setSalvando(false)
+    setMensagem('')
+    alert(
+      `Presença bloqueada. O evento precisa estar ABERTO e dentro do horário permitido. Status atual: ${status}.`
+    )
+  }
+
+  async function registrarPresenca() {
+    if (!evento || salvando) return
+
+    if (!nome.trim() || !setor.trim() || !empresa) {
       alert('Preencha todos os campos')
       return
     }
 
-    if (empresa === 'Outros' && !empresaOutra) {
+    if (empresa === 'Outros' && !empresaOutra.trim()) {
       alert('Digite a empresa')
       return
     }
@@ -105,158 +134,210 @@ export default function RegistrarPresenca() {
       return
     }
 
-    const agora = new Date()
-    const inicio = new Date(`${evento.data}T${evento.hora_inicio}`)
-    const fim = new Date(`${evento.data}T${evento.hora_fim}`)
-
-    if (agora < inicio || agora > fim) {
-      alert('Fora do horário permitido')
-      return
-    }
-
+    // Nunca confia no status guardado no estado da página: consulta o banco.
     setSalvando(true)
-    setMensagem('Verificando funcionário...')
+    setMensagem('Verificando se o evento está aberto...')
 
-    const nomeDigitado = nome.trim()
+    try {
+      const eventoAtual = await buscarEventoAtual()
 
-    // Divide o texto digitado em palavras para buscar partes do nome de forma inteligente
-    const palavras = nomeDigitado.split(/\s+/)
-    let query = supabase.from('funcionarios').select('*')
-    palavras.forEach((palavra) => {
-      query = query.ilike('nome', `%${palavra}%`)
-    })
+      if (
+        !eventoAtual ||
+        String(eventoAtual.status || '').trim().toUpperCase() !== 'ABERTO' ||
+        !eventoEstaNoPeriodo(eventoAtual)
+      ) {
+        mostrarBloqueioEvento(eventoAtual)
+        return
+      }
 
-    const { data: correspondentes } = await query
+      setMensagem('Verificando funcionário...')
 
-    let idParaSalvar = null
-    let matriculaParaSalvar = null
-    let nomeParaSalvar = nome.trim()
+      const nomeDigitado = nome.trim()
+      const palavras = nomeDigitado.split(/\s+/)
+      let query = supabase.from('funcionarios').select('*')
 
-    // SE ACHOU HOMÔNIMOS (Mais de 1 funcionário fixo com esse nome/termo)
-    if (correspondentes && correspondentes.length > 1) {
-      if (!funcionarioIdCorreto) {
-        setHomonimos(correspondentes)
+      palavras.forEach((palavra) => {
+        query = query.ilike('nome', `%${palavra}%`)
+      })
+
+      const { data: correspondentes, error: erroFuncionarios } = await query
+
+      if (erroFuncionarios) {
+        console.error('Erro ao consultar funcionário:', erroFuncionarios)
         setSalvando(false)
         setMensagem('')
-        return // Pausa para o usuário selecionar na lista suspensa
-      } else {
-        const escolhido = correspondentes.find(
-          (f: any) => f.id === funcionarioIdCorreto
-        )
-        if (escolhido) {
-          idParaSalvar = escolhido.id
-          matriculaParaSalvar = escolhido.matricula
-          nomeParaSalvar = escolhido.nome
-        }
+        alert('Não foi possível consultar o funcionário. Tente novamente.')
+        return
       }
-    } 
-    // SE ACHOU EXATAMENTE 1 FUNCIONÁRIO FIXO
-    else if (correspondentes && correspondentes.length === 1) {
-      idParaSalvar = correspondentes[0].id
-      matriculaParaSalvar = correspondentes[0].matricula
-      nomeParaSalvar = correspondentes[0].nome
-    } 
-    // SE NÃO ACHOU NINGUÉM NA TABELA DE FUNCIONÁRIOS (É um Terceiro / Visitante eventual!)
-    else {
-      idParaSalvar = null
-      matriculaParaSalvar = null
-      nomeParaSalvar = nome.trim() // Permite seguir o cadastro normalmente como avulso
-    }
 
-    setMensagem('Validando localização...')
+      let idParaSalvar: string | null = null
+      let matriculaParaSalvar: string | null = null
+      let nomeParaSalvar = nomeDigitado
 
-    // VALIDAÇÃO DE GPS E UPLOAD DE FOTO
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const latitudeUsuario = pos.coords.latitude
-        const longitudeUsuario = pos.coords.longitude
-
-        if (evento.latitude && evento.longitude) {
-          const distancia = calcularDistancia(
-            latitudeUsuario,
-            longitudeUsuario,
-            evento.latitude,
-            evento.longitude
-          )
-
-          if (distancia > 0.01) {
-            setSalvando(false)
-            alert('Você não está no local do evento')
-            return
-          }
-        }
-
-        let fotoUrl = ''
-
-        if (foto) {
-          setMensagem('Enviando selfie...')
-
-          const nomeArquivo = `${Date.now()}-${foto.name}`
-
-          const { error: erroUpload } = await supabase.storage
-            .from('selfies')
-            .upload(nomeArquivo, foto)
-
-          if (erroUpload) {
-            console.log(erroUpload)
-            setSalvando(false)
-            alert('Erro ao enviar selfie')
-            return
-          }
-
-          const {
-            data: { publicUrl },
-          } = supabase.storage.from('selfies').getPublicUrl(nomeArquivo)
-
-          fotoUrl = publicUrl
-        }
-
-        setMensagem('Registrando presença...')
-
-        /* HORÁRIO BRASIL */
-        const agoraBrasil = new Date(
-          new Date().toLocaleString('en-US', {
-            timeZone: 'America/Sao_Paulo',
-          })
-        )
-
-        const { error } = await supabase.from('presencas').insert([
-          {
-            evento_id: evento.id,
-            funcionario_id: idParaSalvar || null,
-            nome: nomeParaSalvar,
-            matricula: matriculaParaSalvar || null,
-            setor: setor.trim(),
-            empresa: empresa === 'Outros' ? empresaOutra.trim() : empresa,
-            foto_url: fotoUrl || null,
-            data_hora: agoraBrasil.toISOString(),
-          },
-        ])
-
-        setSalvando(false)
-
-        if (error) {
-          console.log(error)
-          alert('Erro ao registrar presença')
+      if (correspondentes && correspondentes.length > 1) {
+        if (!funcionarioIdCorreto) {
+          setHomonimos(correspondentes)
+          setSalvando(false)
+          setMensagem('')
           return
         }
 
-        alert(`Presença registrada com sucesso para ${nomeParaSalvar}!`)
+        const escolhido = correspondentes.find(
+          (f: any) => f.id === funcionarioIdCorreto
+        )
 
-        setNome('')
-        setSetor('')
-        setEmpresa('')
-        setEmpresaOutra('')
-        setFoto(null)
-        setMensagem('')
-        setHomonimos([])
-        setFuncionarioIdCorreto('')
-      },
-      () => {
-        setSalvando(false)
-        alert('Permita acesso à localização')
+        if (!escolhido) {
+          setSalvando(false)
+          setMensagem('')
+          alert('Selecione um funcionário válido.')
+          return
+        }
+
+        idParaSalvar = escolhido.id
+        matriculaParaSalvar = escolhido.matricula
+        nomeParaSalvar = escolhido.nome
+      } else if (correspondentes && correspondentes.length === 1) {
+        idParaSalvar = correspondentes[0].id
+        matriculaParaSalvar = correspondentes[0].matricula
+        nomeParaSalvar = correspondentes[0].nome
       }
-    )
+
+      setMensagem('Validando localização...')
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const latitudeUsuario = pos.coords.latitude
+            const longitudeUsuario = pos.coords.longitude
+
+            // O evento pode ter sido fechado enquanto o GPS era consultado.
+            const eventoAntesDoUpload = await buscarEventoAtual()
+
+            if (
+              !eventoAntesDoUpload ||
+              String(eventoAntesDoUpload.status || '').trim().toUpperCase() !== 'ABERTO' ||
+              !eventoEstaNoPeriodo(eventoAntesDoUpload)
+            ) {
+              mostrarBloqueioEvento(eventoAntesDoUpload)
+              return
+            }
+
+            if (
+              eventoAntesDoUpload.latitude != null &&
+              eventoAntesDoUpload.longitude != null
+            ) {
+              const distancia = calcularDistancia(
+                latitudeUsuario,
+                longitudeUsuario,
+                eventoAntesDoUpload.latitude,
+                eventoAntesDoUpload.longitude
+              )
+
+              if (distancia > 0.01) {
+                setSalvando(false)
+                setMensagem('')
+                alert('Você não está no local do evento')
+                return
+              }
+            }
+
+            let fotoUrl = ''
+
+            if (foto) {
+              setMensagem('Enviando selfie...')
+
+              const nomeArquivo = `${Date.now()}-${foto.name}`
+
+              const { error: erroUpload } = await supabase.storage
+                .from('selfies')
+                .upload(nomeArquivo, foto)
+
+              if (erroUpload) {
+                console.error(erroUpload)
+                setSalvando(false)
+                setMensagem('')
+                alert('Erro ao enviar selfie')
+                return
+              }
+
+              const {
+                data: { publicUrl },
+              } = supabase.storage.from('selfies').getPublicUrl(nomeArquivo)
+
+              fotoUrl = publicUrl
+            }
+
+            setMensagem('Confirmando status e registrando presença...')
+
+            // Última consulta imediatamente antes do INSERT.
+            const eventoFinal = await buscarEventoAtual()
+
+            if (
+              !eventoFinal ||
+              String(eventoFinal.status || '').trim().toUpperCase() !== 'ABERTO' ||
+              !eventoEstaNoPeriodo(eventoFinal)
+            ) {
+              mostrarBloqueioEvento(eventoFinal)
+              return
+            }
+
+            const agoraBrasil = new Date(
+              new Date().toLocaleString('en-US', {
+                timeZone: 'America/Sao_Paulo',
+              })
+            )
+
+            const { error } = await supabase.from('presencas').insert([
+              {
+                evento_id: eventoFinal.id,
+                funcionario_id: idParaSalvar || null,
+                nome: nomeParaSalvar,
+                matricula: matriculaParaSalvar || null,
+                setor: setor.trim(),
+                empresa: empresa === 'Outros' ? empresaOutra.trim() : empresa,
+                foto_url: fotoUrl || null,
+                data_hora: agoraBrasil.toISOString(),
+              },
+            ])
+
+            if (error) {
+              console.error('Erro ao inserir presença:', error)
+              setSalvando(false)
+              setMensagem('')
+              alert('Erro ao registrar presença')
+              return
+            }
+
+            setSalvando(false)
+            alert(`Presença registrada com sucesso para ${nomeParaSalvar}!`)
+
+            setNome('')
+            setSetor('')
+            setEmpresa('')
+            setEmpresaOutra('')
+            setFoto(null)
+            setMensagem('')
+            setHomonimos([])
+            setFuncionarioIdCorreto('')
+          } catch (erro) {
+            console.error('Erro durante o registro:', erro)
+            setSalvando(false)
+            setMensagem('')
+            alert('Não foi possível validar o evento e registrar a presença. Tente novamente.')
+          }
+        },
+        () => {
+          setSalvando(false)
+          setMensagem('')
+          alert('Permita acesso à localização')
+        }
+      )
+    } catch (erro) {
+      console.error('Erro ao validar evento:', erro)
+      setSalvando(false)
+      setMensagem('')
+      alert('Não foi possível confirmar o status do evento. A presença não foi registrada.')
+    }
   }
 
   if (!evento) {
