@@ -14,6 +14,7 @@ type Evento = {
   tipo: string
   data: string
   codigo_evento: string
+  instrutor?: string
 }
 
 // FUNÇÃO PARA FORMATAR A DATA
@@ -60,7 +61,6 @@ export default function Relatorios() {
       .order('data', { ascending: false })
 
     // 4. APLICA O FILTRO SE NÃO FOR GESTOR
-    // Se a role for diferente de 'admin', ele só pode ver os próprios eventos.
     if (role !== 'admin') {
       query = query.eq('usuario_id', user.id)
     }
@@ -123,31 +123,34 @@ export default function Relatorios() {
     }
   }
 
-  // CSV
+  // CSV COM INSTRUTOR
   function exportarCSV() {
     const linhas = [
       [
-        'Código do Evento', // 🔥 Adicionado cabeçalho
+        'Código do Evento',
         'Nome',
         'Matrícula',
         'Setor',
         'Empresa',
         'Evento',
+        'Instrutor', // Cabeçalho adicionado
         'Data/Hora',
       ],
 
       ...presencas.map((p) => {
         const eventoReferente = eventos.find(e => e.id === p.evento_id)
         const nomeEvento = eventoReferente ? eventoReferente.titulo : 'Desconhecido'
-        const codigoEvento = eventoReferente ? eventoReferente.codigo_evento : '' // 🔥 Puxando o código
+        const codigoEvento = eventoReferente ? eventoReferente.codigo_evento : ''
+        const instrutorEvento = eventoReferente?.instrutor || 'Não informado'
 
         return [
-          codigoEvento, // 🔥 Inserindo na linha
+          codigoEvento,
           p.nome || '',
           p.matricula || '',
           p.setor || '',
           p.empresa || '',
           nomeEvento,
+          instrutorEvento, // Inserido na linha
           p.data_hora ? formatarDataHora(p.data_hora) : '',
         ]
       }),
@@ -156,7 +159,7 @@ export default function Relatorios() {
     const csv = linhas
       .map((linha) =>
         linha
-          .map((c) => `"${c}"`)
+          .map((c) => `"${String(c).replace(/"/g, '""')}"`)
           .join(';')
       )
       .join('\n')
@@ -176,7 +179,7 @@ export default function Relatorios() {
     window.URL.revokeObjectURL(url)
   }
 
-  // PDF
+  // PDF COM INSTRUTOR
   function exportarPDF() {
     const doc = new jsPDF()
 
@@ -190,30 +193,35 @@ export default function Relatorios() {
       startY: 40,
       head: [
         [
-          'Código do Evento', // 🔥 Adicionado cabeçalho
+          'Código',
           'Nome',
           'Matrícula',
           'Setor',
           'Empresa',
           'Evento', 
+          'Instrutor', // Cabeçalho adicionado
           'Data/Hora',
         ],
       ],
       body: presencas.map((p) => {
         const eventoReferente = eventos.find(e => e.id === p.evento_id)
         const nomeEvento = eventoReferente ? eventoReferente.titulo : 'Desconhecido'
-        const codigoEvento = eventoReferente ? eventoReferente.codigo_evento : '' // 🔥 Puxando o código
+        const codigoEvento = eventoReferente ? eventoReferente.codigo_evento : ''
+        const instrutorEvento = eventoReferente?.instrutor || 'N/I'
 
         return [
-          codigoEvento, // 🔥 Inserindo na linha
+          codigoEvento,
           p.nome || '',
           p.matricula || '',
           p.setor || '',
           p.empresa || '',
           nomeEvento, 
+          instrutorEvento, // Inserido na linha
           p.data_hora ? formatarDataHora(p.data_hora) : '',
         ]
       }),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [37, 99, 235] },
     })
 
     doc.save('relatorio-presencas.pdf')
@@ -297,6 +305,7 @@ export default function Relatorios() {
                   <th>Código</th>
                   <th>Evento</th>
                   <th>Tipo</th>
+                  <th>Instrutor</th>
                   <th>Data</th>
                 </tr>
               </thead>
@@ -317,6 +326,7 @@ export default function Relatorios() {
                     </td>
                     <td>{e.titulo}</td>
                     <td>{e.tipo}</td>
+                    <td>{e.instrutor || 'Não informado'}</td>
                     <td>{formatarData(e.data)}</td>
                   </tr>
                 ))}
