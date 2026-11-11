@@ -45,11 +45,9 @@ export default function EventoDetalhe() {
   useEffect(() => {
     carregar()
 
-    // Monitora se a internet voltou para sincronizar a fila offline
     const sincronizarAoVoltarInternet = () => sincronizarFilaOffline()
     window.addEventListener('online', sincronizarAoVoltarInternet)
     
-    // Checa se já tem algo guardado offline ao abrir a tela
     atualizarContagemOffline()
 
     return () => {
@@ -90,8 +88,6 @@ export default function EventoDetalhe() {
   async function verificarEventoAberto(): Promise<boolean> {
     if (!evento?.id) return false
 
-    // Sem conexão não é possível confirmar o status atual no servidor.
-    // Por segurança, não autoriza registrar nem enfileirar novas presenças offline.
     if (!navigator.onLine) return false
 
     const { data, error } = await supabase
@@ -156,7 +152,6 @@ export default function EventoDetalhe() {
   async function sincronizarFilaOffline() {
     if (!navigator.onLine || !evento) return
 
-    // Confere novamente no banco: o evento pode ter sido fechado enquanto estava offline.
     const eventoAberto = await verificarEventoAberto()
     if (!eventoAberto) {
       alert('Sincronização bloqueada: o evento não está aberto para registro de presença. Os registros continuam guardados neste dispositivo.')
@@ -176,13 +171,13 @@ export default function EventoDetalhe() {
     }
   }
 
-  /* LÓGICA DO MODO SCANNER COM TRAVA RIGOROSA DE STATUS */
+  /* LÓGICA DO MODO SCANNER SUPORTANDO FUNCIONÁRIOS E TERCEIROS FIXOS */
   async function onScanCracha(texto: string) {
     if (scaneando) return
     setScaneando(true)
 
     try {
-      // Consulta o status atualizado no banco antes de aceitar o QR Code.
+      // 1. Confere se o evento está aberto
       const eventoAberto = await verificarEventoAberto()
       if (!eventoAberto) {
         emitirBip('erro')
@@ -194,34 +189,53 @@ export default function EventoDetalhe() {
         return
       }
 
+      // 2. Parse do QR Code
       const dados = JSON.parse(texto)
 
-      if (!dados.nome || !dados.matricula) {
-        throw new Error('Invalido')
+      if (!dados.nome || String(dados.nome).trim() === '') {
+        throw new Error('Nome inválido no QR Code')
       }
 
-      const jaNaTela = presencas.find((p) => p.matricula === String(dados.matricula))
-      const jaNoOffline = obterFilaOffline().find((p) => p.matricula === String(dados.matricula))
+      const nomeLimpo = String(dados.nome).trim()
+      const matriculaLimpa = dados.matricula ? String(dados.matricula).trim() : null
+      const empresaLimpa = dados.empresa ? String(dados.empresa).trim() : 'Outros'
+
+      // 3. Verificação Inteligente de Duplicidade
+      // Se tiver matrícula (Funcionário): checa por matrícula
+      // Se não tiver matrícula (Terceiro): checa por Nome + Empresa
+      const jaNaTela = presencas.find((p) => {
+        if (matriculaLimpa && p.matricula) {
+          return String(p.matricula) === matriculaLimpa
+        }
+        return p.nome?.trim().toLowerCase() === nomeLimpo.toLowerCase() && p.empresa === empresaLimpa
+      })
+
+      const jaNoOffline = obterFilaOffline().find((p) => {
+        if (matriculaLimpa && p.matricula) {
+          return String(p.matricula) === matriculaLimpa
+        }
+        return p.nome?.trim().toLowerCase() === nomeLimpo.toLowerCase() && p.empresa === empresaLimpa
+      })
 
       if (jaNaTela || jaNoOffline) {
         emitirBip('aviso')
-        setFeedbackScan(`⚠️ ${dados.nome} já foi registrado!`)
+        setFeedbackScan(`⚠️ ${nomeLimpo} já foi registrado!`)
         setTimeout(() => { setScaneando(false); setFeedbackScan(''); }, 2000)
         return
       }
 
+      // 4. Monta objeto de presença flexível
       const novaPresenca = {
         evento_id: evento?.id,
-        nome: dados.nome,
-        matricula: String(dados.matricula),
-        setor: dados.setor || '',
-        empresa: dados.empresa || '',
-        centro_custo: dados.centro_custo || '',
+        nome: nomeLimpo,
+        matricula: matriculaLimpa,
+        setor: dados.setor ? String(dados.setor).trim() : 'Terceiro',
+        empresa: empresaLimpa,
+        centro_custo: dados.centro_custo ? String(dados.centro_custo).trim() : '',
         data_hora: new Date().toISOString(),
         foto_url: null,
       }
 
-      // Sem conexão não é possível confirmar se o evento continua aberto.
       if (!navigator.onLine) {
         emitirBip('erro')
         setFeedbackScan('❌ Sem internet. Não foi possível confirmar se o evento está aberto.')
@@ -236,12 +250,12 @@ export default function EventoDetalhe() {
       if (error) throw error
 
       emitirBip('sucesso')
-      setFeedbackScan(`✅ ${dados.nome} registrado!`)
+      setFeedbackScan(`✅ ${nomeLimpo} registrado!`)
       carregar()
 
     } catch (err) {
       emitirBip('erro')
-      setFeedbackScan(`❌ Erro: QR Code inválido.`)
+      setFeedbackScan(`❌ Erro: QR Code inválido ou incorreto.`)
     }
 
     setTimeout(() => {
@@ -272,7 +286,7 @@ export default function EventoDetalhe() {
       
       presencasFiltradas.forEach((p) => {
         const linha = [
-          p.nome || '', p.matricula || '', p.setor || '', p.centro_custo || '', p.empresa || '',
+          p.nome || '', p.matricula || 'N/A', p.setor || '', p.centro_custo || '', p.empresa || '',
           p.data_hora ? new Date(p.data_hora).toLocaleString() : '',
         ];
         csvContent += linha.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';') + '\n';
@@ -322,7 +336,7 @@ export default function EventoDetalhe() {
         startY: espacamentoY,
         head: [['Nome', 'Matrícula', 'Setor', 'Empresa', 'Hora']],
         body: presencasFiltradas.map((p) => [
-          p.nome || '', p.matricula || '', p.setor || '', p.empresa || '',
+          p.nome || '', p.matricula || 'N/A', p.setor || '', p.empresa || '',
           p.data_hora ? new Date(p.data_hora).toLocaleTimeString() : '',
         ]),
         theme: 'grid',
